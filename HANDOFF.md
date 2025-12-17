@@ -1,92 +1,89 @@
 # ENG-SPARKLING 작업 핸드오프 (2024-12-17)
 
-## 현재 상태: 프롬프트 해설 품질 개선 완료, 커밋 대기
+## 현재 상태: Supabase 연동 완료, 무관한 문장 프롬프트 개선 완료
 
 ---
 
 ## 프로젝트 위치
 ```
-C:\springboot\eng-sparkling
+C:\develop\eng-sparkling
 ```
 
 ## 실행 방법
 ```bash
-cd "C:/springboot/eng-sparkling"
+cd "C:/develop/eng-sparkling"
 npm run dev
 # http://localhost:3000
 ```
 
 ## 환경 설정
-- `.env.local` 파일에 OpenAI API 키 필요
-- `.env.example` 참고하여 생성
+`.env.local` 파일 필요:
+```env
+OPENAI_API_KEY=sk-xxx
+DEFAULT_MODEL=gpt-4o-mini
+
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
+```
 
 ---
 
 ## 오늘(12/17) 완료된 작업
 
-### 1. 전체 프롬프트 테스트 및 검증
-- `tests/full-validation.js` 생성 - 12개 문제 유형 자동 테스트
-- 결과: 12/12 (100%) 통과
-
-### 2. GRAMMAR_INCORRECT & SELECT_INCORRECT_WORD 수정
-- **문제**: AI가 마커 ①②③④⑤ 중 일부만 생성하거나 중복 생성
-- **해결**: 구조화된 `markers` 배열 방식으로 변경
-  - AI가 위치와 단어 정보만 반환
-  - 서버에서 마커를 프로그래밍 방식으로 삽입
-- **파일**: `lib/all-prompts.ts`, `app/api/generate/route.ts`
-
-### 3. IRRELEVANT_SENTENCE 수정
-- **문제**: 해설에서 "③번 문장은 글의 주제인 '주제'와 관련이 없습니다" 출력
-- **해결**:
-  - 실제로 무관한 문장을 생성하여 삽입하도록 프롬프트 수정
-  - 해설에 실제 주제명 포함 필수
-- **테스트**: `tests/test-irrelevant.js`
-
-### 4. 드롭다운 버튼 클릭 문제 수정
-- **문제**: 지문이 길어 옵션창이 위로 뜰 때 버튼 클릭 안 됨
-- **해결**: 네이티브 `<select>` → 커스텀 드롭다운 (z-index: 50)
+### 1. 복수 문제 유형 선택 기능
+- **변경**: 드롭다운 → 칩/태그 UI로 복수 선택 가능
+- 전체선택/선택해제 버튼 추가
+- 선택된 개수에 따라 코인 비용 동적 표시
+- Promise.all로 병렬 API 호출
 - **파일**: `app/workflow/page.tsx`
 
-### 5. 아티클 문단 포맷팅 수정
-- **문제**: 생성된 아티클 문단이 합쳐져서 표시됨
-- **해결**: 프롬프트에 "Separate paragraphs with double newlines (\\n\\n)" 추가
-- **파일**: `lib/article-prompts.ts`
+### 2. Toast 알림 시스템
+- alert() → react-hot-toast로 변경
+- 성공/에러/로딩 상태 표시
+- **패키지**: `react-hot-toast`
+- **파일**: `app/workflow/page.tsx`, `app/layout.tsx`
 
-### 6. 아카이브 기능 추가
-- 생성한 문제를 localStorage에 저장 (최대 50개)
-- `/archive` 페이지에서 저장된 문제 확인/삭제 가능
-- **파일**:
-  - `app/archive/page.tsx` (신규)
-  - `app/workflow/page.tsx` (저장 버튼 추가)
+### 3. 개별 문제 저장 기능
+- "전체 저장" → 각 문제별 개별 저장 버튼
+- 저장된 문제는 버튼 비활성화 표시
+- **파일**: `app/workflow/page.tsx`
 
-### 7. 코인 시스템 구현
-- 아티클 생성: 1코인, 문제 생성: 1코인
-- 초기 코인: 100개 (테스트용으로 넉넉히)
-- **파일**:
-  - `lib/coins.ts` (신규)
-  - `app/components/CoinDisplay.tsx` (신규)
+### 4. Supabase 연동 (GitHub OAuth + DB)
+- **설치**: `@supabase/supabase-js`
+- **생성된 파일**:
+  - `lib/supabase.ts` - Supabase 클라이언트
+  - `app/components/AuthProvider.tsx` - 인증 Context
+  - `app/components/AuthButton.tsx` - 로그인/로그아웃 버튼
+  - `app/login/page.tsx` - 로그인 페이지
+  - `app/auth/callback/route.ts` - OAuth 콜백 핸들러
+- **DB 스키마** (Supabase에서 실행 완료):
+  - `profiles` 테이블 (user_id, username, email, avatar_url, coins)
+  - `archived_questions` 테이블 (저장된 문제)
+  - RLS 정책 설정 완료
+  - 자동 프로필 생성 트리거 (SECURITY DEFINER)
 
-### 8. 해설 품질 개선 (모든 프롬프트)
-- **문제**: "정답은 ③번입니다. 문맥상 적절합니다." 같은 부실한 해설
-- **해결**: 모든 프롬프트에 EXPLANATION REQUIREMENTS 섹션 추가
-  - 본문 인용 필수
-  - 왜 정답인지 구체적 설명 필수
-  - GOOD EXAMPLE / BAD EXAMPLE 포함
-- **수정된 프롬프트**:
-  - BLANK_WORD
-  - CORRECT_ANSWER
-  - INCORRECT_ANSWER
-  - COMPLETE_SUMMARY
-  - INSERT_SENTENCE
-  - SENTENCE_ORDER
-  - PICK_SUBJECT
-  - PICK_TITLE
-  - PICK_UNDERLINE
+### 5. 로그인 필수화
+- `/workflow` 페이지 접근 시 로그인 체크
+- 비로그인 시 `/login`으로 리다이렉트
+- **파일**: `app/workflow/page.tsx`
 
-### 9. 메인 페이지 가격 문구 수정
-- Before: "월 9,000원으로 무제한 문제 생성"
-- After: "월 9,000원 구독으로 프리미엄 기능 이용"
-- **파일**: `app/page.tsx:426`
+### 6. 헤더 레이아웃 정리
+- 네비게이션 그룹 | 구분선 | 유저 영역으로 정리
+- 로고, 코인, 홈/아카이브 버튼 배치 개선
+- **파일**: `app/workflow/page.tsx`
+
+### 7. 마커 생성 안정성 개선
+- MAX_RETRIES: 3 → 5로 증가
+- 마커 빌드 로직 개선 (다중 검색 전략 + fallback)
+- **파일**: `app/api/generate/route.ts`
+
+### 8. 무관한 문장(IRRELEVANT_SENTENCE) 프롬프트 개선
+- **문제**: "에베레스트 산" 같은 뜬금없는 문장 생성
+- **해결**: 수능 스타일로 변경
+  - "COMPLETELY OFF-TOPIC" → "SUBTLY off-topic"
+  - 같은 주제 영역 내에서 논리적 흐름만 벗어나도록
+  - 표면적으로 관련되어 보이지만 핵심 논지 지원 안 함
+- **파일**: `lib/all-prompts.ts`
 
 ---
 
@@ -94,99 +91,85 @@ npm run dev
 ```
 eng-sparkling/
 ├── app/
-│   ├── page.tsx              # 메인 페이지
-│   ├── workflow/page.tsx     # AI 문제 생성 워크플로우
-│   ├── archive/page.tsx      # 저장된 문제 보기 (NEW)
+│   ├── page.tsx              # 메인 페이지 (데모)
+│   ├── login/page.tsx        # 로그인 페이지 (NEW)
+│   ├── workflow/page.tsx     # AI 문제 생성 (복수선택, 인증)
+│   ├── archive/page.tsx      # 저장된 문제 보기
+│   ├── auth/
+│   │   └── callback/route.ts # OAuth 콜백 (NEW)
 │   ├── api/
-│   │   ├── generate/route.ts # 문제 생성 API (마커 로직 추가)
+│   │   ├── generate/route.ts # 문제 생성 API (마커 개선)
 │   │   └── generate-article/ # 아티클 생성 API
 │   └── components/
-│       ├── CoinDisplay.tsx   # 코인 표시 컴포넌트 (NEW)
+│       ├── AuthProvider.tsx  # 인증 Context (NEW)
+│       ├── AuthButton.tsx    # 로그인 버튼 (NEW)
+│       ├── CoinDisplay.tsx   # 코인 표시
 │       └── QuestionDisplay.tsx
 ├── lib/
-│   ├── all-prompts.ts        # 12개 문제 유형 프롬프트 (해설 개선)
+│   ├── supabase.ts           # Supabase 클라이언트 (NEW)
+│   ├── all-prompts.ts        # 12개 문제 프롬프트 (무관한문장 개선)
 │   ├── article-prompts.ts    # 아티클 생성 프롬프트
-│   ├── coins.ts              # 코인 관리 시스템 (NEW)
+│   ├── coins.ts              # 코인 관리 (localStorage)
 │   └── openai.ts
-├── tests/                    # 테스트 스크립트 (NEW)
-│   ├── full-validation.js    # 전체 프롬프트 검증
-│   └── test-irrelevant.js    # IRRELEVANT_SENTENCE 테스트
-├── data/
-│   └── demo-questions.ts     # 데모용 고정 문제
+├── tests/                    # 테스트 스크립트
 └── types/
     └── index.ts
 ```
 
 ---
 
-## 커밋 대기 중인 변경사항
+## Supabase 설정 정보
 
-### Staged (이미 add됨)
-- `img.png`, `img_1.png`, `img_2.png` (스크린샷)
+### GitHub OAuth
+- Supabase Dashboard > Authentication > Providers > GitHub
+- Client ID/Secret 설정 완료
+- Callback URL: `https://[project].supabase.co/auth/v1/callback`
 
-### Modified (add 필요)
-- `app/api/generate/route.ts` - 마커 처리 로직
-- `app/components/QuestionDisplay.tsx`
-- `app/globals.css`
-- `app/layout.tsx`
-- `app/page.tsx` - 가격 문구
-- `app/workflow/page.tsx` - 드롭다운, 아카이브 연동
-- `data/demo-questions.ts`
-- `lib/all-prompts.ts` - 해설 품질 개선
-- `lib/article-prompts.ts` - 문단 포맷팅
-- `package-lock.json`
-
-### Untracked (add 필요)
-- `app/archive/` - 아카이브 페이지
-- `app/components/CoinDisplay.tsx` - 코인 컴포넌트
-- `lib/coins.ts` - 코인 시스템
-- `tests/` - 테스트 스크립트
-
-### 커밋 안 해도 됨
-- `.claude/` - Claude 설정
-- `.idea/` - IDE 설정
-- `docs/TESTING-SKILLS.md` - 내부 문서
+### DB 트리거 (프로필 자동 생성)
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, username, email, avatar_url, coins)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'user_name', NEW.raw_user_meta_data->>'name', 'user'),
+    NEW.email,
+    NEW.raw_user_meta_data->>'avatar_url',
+    100
+  );
+  RETURN NEW;
+END;
+$$;
+```
 
 ---
 
 ## 알려진 이슈 / TODO
 
 ### 남은 작업
-1. **OAuth2 로그인** - NextAuth.js로 Google 로그인 구현
-2. **DB 연결** - PostgreSQL/Supabase로 사용자 데이터 영구 저장
+1. **코인 DB 연동** - 현재 localStorage, DB로 이전 필요
+2. **저장 문제 DB 연동** - archived_questions 테이블 활용
 3. **결제 시스템** - Toss Payments 연동
 4. **코인 충전** - 결제 후 코인 추가 기능
 
 ### 확인 필요
-- 테스트는 로컬에서만 수행됨, 실제 배포 환경 테스트 필요
-- localStorage 기반이라 브라우저/기기 간 데이터 공유 안 됨
-
----
-
-## 테스트 방법
-
-### 전체 프롬프트 테스트
-```bash
-cd tests
-node full-validation.js
-```
-- 서버가 localhost:3001에서 실행 중이어야 함
-- 모든 12개 유형 자동 테스트
-
-### IRRELEVANT_SENTENCE 개별 테스트
-```bash
-cd tests
-node test-irrelevant.js
-```
+- Supabase RLS 정책 실제 동작 테스트
+- 프로필 자동 생성 트리거 동작 확인
+- 무관한 문장 프롬프트 개선 결과 품질 테스트
 
 ---
 
 ## 다음 세션 시작할 때
 
 1. 이 파일(HANDOFF.md) 읽기
-2. git status로 현재 상태 확인
-3. 커밋이 필요하면 먼저 커밋
-4. `npm run dev`로 서버 실행
+2. `npm run dev`로 서버 실행
+3. GitHub 로그인 테스트
+4. 무관한 문장 문제 생성 테스트 (품질 확인)
 5. 남은 작업 중 하나 선택하여 진행
 
 ---

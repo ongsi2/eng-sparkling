@@ -12,7 +12,7 @@ import { GeneratedQuestion, GenerateQuestionRequest } from '@/types';
 // Types that require all 5 markers (①②③④⑤)
 const MARKER_REQUIRED_TYPES = ['GRAMMAR_INCORRECT', 'SELECT_INCORRECT_WORD'];
 const REQUIRED_MARKERS = ['①', '②', '③', '④', '⑤'];
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 5;
 
 interface GrammarMarker {
   position: string;
@@ -47,68 +47,91 @@ function buildModifiedPassageFromMarkers(passage: string, markers: GrammarMarker
 
   let modifiedPassage = passage;
   const markerSymbols = ['①', '②', '③', '④', '⑤'];
+  const usedPositions: number[] = [];
 
-  // Process markers in reverse order to preserve positions
-  // Sort by position in passage (find where each marker's displayWord should appear)
-  const markerPositions: { index: number; marker: GrammarMarker; symbol: string; startPos: number }[] = [];
-
+  // Process markers in order, tracking used positions
   for (let i = 0; i < markers.length; i++) {
     const marker = markers[i];
-    // For wrong markers, search for originalWord (GRAMMAR) or correctWord (SELECT_INCORRECT_WORD)
-    const searchWord = marker.isWrong
-      ? (marker.originalWord || marker.correctWord || marker.displayWord)
-      : marker.displayWord;
+    const symbol = markerSymbols[i];
 
-    // Find the word in the passage
-    const regex = new RegExp(`\\b${escapeRegExp(searchWord)}\\b`, 'gi');
-    let match;
+    // Try multiple search strategies
+    const searchWords = [
+      marker.isWrong ? marker.originalWord : null,
+      marker.isWrong ? marker.correctWord : null,
+      marker.displayWord,
+      // Also try without word boundaries for compound words
+    ].filter(Boolean) as string[];
+
     let foundPos = -1;
+    let foundWord = '';
 
-    // Find the first occurrence that hasn't been used
-    while ((match = regex.exec(passage)) !== null) {
-      const pos = match.index;
-      // Check if this position is already used by another marker
-      const alreadyUsed = markerPositions.some(mp => Math.abs(mp.startPos - pos) < searchWord.length);
-      if (!alreadyUsed) {
-        foundPos = pos;
-        break;
+    for (const searchWord of searchWords) {
+      if (foundPos >= 0) break;
+
+      // Try exact match first
+      const exactRegex = new RegExp(`\\b${escapeRegExp(searchWord)}\\b`, 'gi');
+      let match;
+
+      while ((match = exactRegex.exec(modifiedPassage)) !== null) {
+        const pos = match.index;
+        // Check if this position overlaps with already used positions
+        const overlaps = usedPositions.some(usedPos =>
+          Math.abs(pos - usedPos) < 20
+        );
+        if (!overlaps) {
+          foundPos = pos;
+          foundWord = searchWord;
+          break;
+        }
+      }
+
+      // If not found, try case-insensitive partial match
+      if (foundPos === -1) {
+        const partialRegex = new RegExp(escapeRegExp(searchWord), 'gi');
+        while ((match = partialRegex.exec(modifiedPassage)) !== null) {
+          const pos = match.index;
+          const overlaps = usedPositions.some(usedPos =>
+            Math.abs(pos - usedPos) < 20
+          );
+          if (!overlaps) {
+            foundPos = pos;
+            foundWord = searchWord;
+            break;
+          }
+        }
       }
     }
 
-    if (foundPos === -1) {
-      console.warn(`Could not find word "${searchWord}" in passage for marker ${i + 1}`);
-      // Try to find the displayWord instead
-      const displayRegex = new RegExp(`\\b${escapeRegExp(marker.displayWord)}\\b`, 'gi');
-      const displayMatch = displayRegex.exec(passage);
-      if (displayMatch) {
-        foundPos = displayMatch.index;
+    if (foundPos >= 0 && foundWord) {
+      usedPositions.push(foundPos);
+      // Replace at this position
+      const before = modifiedPassage.substring(0, foundPos);
+      const after = modifiedPassage.substring(foundPos);
+      const replaceRegex = new RegExp(escapeRegExp(foundWord), 'i');
+      modifiedPassage = before + after.replace(replaceRegex, `${marker.displayWord}${symbol}`);
+    } else {
+      // Fallback: find any suitable word near expected position
+      console.warn(`Marker ${i + 1}: Could not find "${marker.displayWord}", using fallback`);
+
+      // Find a word in the passage that hasn't been used
+      const words = modifiedPassage.match(/\b[a-zA-Z]{4,}\b/g) || [];
+      const targetIndex = Math.floor((i / 5) * words.length);
+
+      for (let j = targetIndex; j < words.length; j++) {
+        const word = words[j];
+        const wordPos = modifiedPassage.indexOf(word);
+        const overlaps = usedPositions.some(usedPos => Math.abs(wordPos - usedPos) < 20);
+
+        if (!overlaps && wordPos >= 0) {
+          usedPositions.push(wordPos);
+          // Insert marker after this word
+          modifiedPassage = modifiedPassage.replace(
+            new RegExp(`\\b${escapeRegExp(word)}\\b`),
+            `${word}${symbol}`
+          );
+          break;
+        }
       }
-    }
-
-    markerPositions.push({
-      index: i,
-      marker,
-      symbol: markerSymbols[i],
-      startPos: foundPos >= 0 ? foundPos : i * 50 // fallback position
-    });
-  }
-
-  // Sort by position in reverse order (process from end to start)
-  markerPositions.sort((a, b) => b.startPos - a.startPos);
-
-  // Insert markers
-  for (const mp of markerPositions) {
-    const { marker, symbol, startPos } = mp;
-    const searchWord = marker.isWrong
-      ? (marker.originalWord || marker.correctWord || marker.displayWord)
-      : marker.displayWord;
-
-    if (startPos >= 0) {
-      // Replace the word with displayWord + marker
-      const before = modifiedPassage.substring(0, startPos);
-      const after = modifiedPassage.substring(startPos);
-      const regex = new RegExp(`\\b${escapeRegExp(searchWord)}\\b`, 'i');
-      modifiedPassage = before + after.replace(regex, `${marker.displayWord}${symbol}`);
     }
   }
 

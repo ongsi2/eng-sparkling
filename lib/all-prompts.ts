@@ -411,49 +411,69 @@ The explanation must include:
 `;
 
 // ============================================
-// 10. 무관한 문장
+// 10. 무관한 문장 (수능 스타일)
 // ============================================
 export const IRRELEVANT_SENTENCE_PROMPT = `
 You are an expert English teacher specializing in Korean SAT (수능) style questions.
 
-Create a question where students identify which sentence is IRRELEVANT to the main flow.
+Create a question where students identify which sentence is IRRELEVANT to the main logical flow.
 
-**CRITICAL TASK:**
-You must CREATE and INSERT one irrelevant sentence into the passage. This sentence should:
-- Sound plausible and well-written
-- Be grammatically correct
-- Be COMPLETELY OFF-TOPIC from the main subject of the passage
-- NOT logically connect to the sentences before or after it
+**CRITICAL UNDERSTANDING - 수능 스타일의 무관한 문장:**
+In real Korean SAT (수능), the irrelevant sentence is NOT completely off-topic. Instead, it is:
+- SUBTLY off-topic: Related to the general subject area but not to the SPECIFIC ARGUMENT
+- SUPERFICIALLY connected: Uses similar vocabulary or themes but doesn't advance the main point
+- LOGICALLY disconnected: Breaks the cause-effect or argumentative flow
+- REQUIRES careful reading to identify: Not obviously wrong at first glance
+
+**WRONG APPROACH (DO NOT DO THIS):**
+- Passage about K-pop → Inserting a sentence about Mount Everest (too obvious!)
+- Passage about climate change → Inserting a sentence about cooking recipes (too random!)
+
+**CORRECT APPROACH (수능 스타일):**
+- Passage about "how K-pop uses social media for global reach" → Insert a sentence about "K-pop fashion trends" (related to K-pop, but off the main argument about social media strategy)
+- Passage about "negative effects of climate change on agriculture" → Insert a sentence about "positive economic growth of environmental industries" (related to climate/environment, but doesn't fit the "negative effects on agriculture" argument)
 
 **Passage:**
 {passage}
 
 **STEP-BY-STEP INSTRUCTIONS:**
-1. Identify the MAIN TOPIC of the passage (e.g., "interview skills", "climate change effects")
+1. Identify the SPECIFIC ARGUMENT of the passage (not just the general topic)
+   - General topic: "K-pop" → Specific argument: "how K-pop uses social media for global success"
+   - General topic: "Education" → Specific argument: "why hands-on learning is more effective than lectures"
 2. Select 5 consecutive sentences from the passage
-3. REPLACE one of those sentences with a NEW irrelevant sentence you create
-4. The irrelevant sentence should be about a DIFFERENT topic entirely
+3. CREATE one irrelevant sentence that:
+   - Uses vocabulary related to the general topic
+   - Sounds natural and well-written
+   - Does NOT advance or support the specific argument
+   - Could mislead careless readers into thinking it belongs
+4. REPLACE one of the 5 sentences with your created irrelevant sentence
 5. Mark all 5 sentences with ①②③④⑤
 
 **EXAMPLE:**
-Original: "Dogs are loyal companions. They provide emotional support. Exercise is important for heart health. Many people consider dogs part of their family."
+Passage about "Dogs provide emotional support to their owners":
+- General topic: Dogs
+- Specific argument: Emotional support benefits
 
-Modified: "①Dogs are loyal companions. ②They provide emotional support. ③Exercise is important for heart health. ④Many people consider dogs part of their family. ⑤Training a dog requires patience."
+Original: "Dogs are loyal companions. They sense their owners' emotions. Studies show dog owners have lower stress levels. Spending time with dogs releases oxytocin."
 
-In this example, ③ is irrelevant because the passage is about dogs as companions, but ③ talks about exercise and heart health - a completely different topic.
+Created irrelevant sentence: "Guide dogs are trained for about two years before being paired with their owners."
 
-**IMPORTANT RULES:**
-1. The irrelevant sentence must be TRULY unrelated to the main topic
-2. The explanation must state the ACTUAL main topic (not the word '주제')
-3. The explanation must explain WHY the sentence doesn't fit
+Modified: "①Dogs are loyal companions. ②They sense their owners' emotions. ③Guide dogs are trained for about two years before being paired with their owners. ④Studies show dog owners have lower stress levels. ⑤Spending time with dogs releases oxytocin."
+
+Why ③ is irrelevant: It's about dogs (same general topic), but discusses guide dog training (different specific topic), not emotional support benefits. A careless reader might think "it's about dogs, so it fits" - but it doesn't support the main argument.
+
+**EXPLANATION REQUIREMENTS:**
+1. State the SPECIFIC ARGUMENT (not just "이 글은 ~에 대한 글입니다")
+2. Explain how the irrelevant sentence is THEMATICALLY related but LOGICALLY disconnected
+3. Point out what the irrelevant sentence discusses vs what it SHOULD discuss to fit the flow
 
 **Output (JSON only):**
 {
   "question": "다음 글에서 전체 흐름과 관계 없는 문장은?",
-  "modifiedPassage": "①First sentence. ②Second sentence. ③Third sentence (this could be irrelevant). ④Fourth sentence. ⑤Fifth sentence.",
+  "modifiedPassage": "①First sentence. ②Second sentence. ③Third sentence (irrelevant). ④Fourth sentence. ⑤Fifth sentence.",
   "choices": ["①", "②", "③", "④", "⑤"],
   "answer": 3,
-  "explanation": "정답은 ③번입니다. 이 글은 '면접 기술의 중요성'에 대해 다루고 있는데, ③번 문장은 '운동과 건강'에 대한 내용으로 글의 주제와 무관합니다."
+  "explanation": "정답은 ③번입니다. 이 글은 '[구체적 논지]'에 대해 논하고 있습니다. ①②④⑤번 문장은 모두 [구체적 논지]를 뒷받침하는 내용인 반면, ③번 문장은 [같은 주제 영역]에 대한 내용이지만 '[다른 세부 주제]'를 다루고 있어 글의 논리적 흐름과 맞지 않습니다."
 }
 `;
 

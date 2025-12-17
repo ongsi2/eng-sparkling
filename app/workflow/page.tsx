@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import toast, { Toaster } from 'react-hot-toast';
 import { ArticleResponse } from '@/lib/article-prompts';
 import { getCoins, deductCoins, hasEnoughCoins, COIN_COSTS, CoinState } from '@/lib/coins';
 import CoinDisplay, { CoinCost, triggerCoinUpdate } from '@/app/components/CoinDisplay';
+import AuthButton from '@/app/components/AuthButton';
+import { useAuth } from '@/app/components/AuthProvider';
 
 // Archive storage key
 const ARCHIVE_KEY = 'eng-sparkling-archive';
@@ -105,6 +109,16 @@ const SparklingLogo = () => (
 );
 
 export default function WorkflowPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  // 로그인 안 했으면 /login으로 리다이렉트
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
   const [step, setStep] = useState<1 | 2>(1);
 
   // Step 1: Article Generation
@@ -114,38 +128,41 @@ export default function WorkflowPage() {
   const [generatedArticle, setGeneratedArticle] = useState<ArticleResponse | null>(null);
   const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
 
-  // Step 2: Question Generation
-  const [selectedQuestionType, setSelectedQuestionType] = useState<QuestionType>('GRAMMAR_INCORRECT');
-  const [generatedQuestion, setGeneratedQuestion] = useState<Question | null>(null);
+  // Step 2: Question Generation (Multi-select)
+  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<QuestionType[]>([]);
+  const [generatedQuestions, setGeneratedQuestions] = useState<{type: QuestionType, question: Question}[]>([]);
   const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<{current: number, total: number} | null>(null);
 
-  // Archive state
-  const [isSaved, setIsSaved] = useState(false);
+  // Archive state - track individually saved questions by index
+  const [savedIndexes, setSavedIndexes] = useState<Set<number>>(new Set());
 
-  // Dropdown state for custom select
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  // Toggle question type selection
+  const toggleQuestionType = (type: QuestionType) => {
+    setSelectedQuestionTypes(prev =>
+      prev.includes(type)
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  // Select/Deselect all
+  const selectAllTypes = () => {
+    setSelectedQuestionTypes(Object.keys(QUESTION_TYPE_LABELS) as QuestionType[]);
+  };
+  const deselectAllTypes = () => {
+    setSelectedQuestionTypes([]);
+  };
 
   const handleGenerateArticle = async () => {
     if (!keywords.trim()) {
-      alert('키워드를 입력해주세요');
+      toast.error('키워드를 입력해주세요');
       return;
     }
 
     // Check coin balance
     if (!hasEnoughCoins(COIN_COSTS.GENERATE_ARTICLE)) {
-      alert('코인이 부족합니다. 코인을 충전해주세요.');
+      toast.error('코인이 부족합니다. 코인을 충전해주세요.');
       return;
     }
 
@@ -175,9 +192,10 @@ export default function WorkflowPage() {
 
       setGeneratedArticle(data);
       setStep(2);
+      toast.success('아티클이 생성되었습니다!');
     } catch (error: any) {
       console.error('Article generation error:', error);
-      alert(`아티클 생성 실패: ${error.message}`);
+      toast.error(`아티클 생성 실패: ${error.message}`);
     } finally {
       setIsGeneratingArticle(false);
     }
@@ -185,69 +203,165 @@ export default function WorkflowPage() {
 
   const handleGenerateQuestion = async () => {
     if (!generatedArticle) return;
+    if (selectedQuestionTypes.length === 0) {
+      toast.error('문제 유형을 하나 이상 선택해주세요.');
+      return;
+    }
 
-    // Check coin balance
-    if (!hasEnoughCoins(COIN_COSTS.GENERATE_QUESTION)) {
-      alert('코인이 부족합니다. 코인을 충전해주세요.');
+    // Check coin balance for all selected types
+    const totalCost = selectedQuestionTypes.length * COIN_COSTS.GENERATE_QUESTION;
+    if (!hasEnoughCoins(totalCost)) {
+      toast.error(`코인이 부족합니다. 필요한 코인: ${totalCost}개`);
       return;
     }
 
     setIsGeneratingQuestion(true);
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          passage: generatedArticle.article,
-          questionType: selectedQuestionType,
-        }),
-      });
+    setGeneratedQuestions([]);
+    setGenerationProgress({ current: 0, total: selectedQuestionTypes.length });
 
-      const data = await response.json();
+    const results: {type: QuestionType, question: Question}[] = [];
+    let successCount = 0;
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate question');
+    // Generate questions in parallel
+    const promises = selectedQuestionTypes.map(async (type) => {
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            passage: generatedArticle.article,
+            questionType: type,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          const errorMsg = data.details || data.error || 'Failed to generate question';
+          throw new Error(errorMsg);
+        }
+
+        return { type, question: data as Question, success: true };
+      } catch (error: any) {
+        console.error(`Question generation error for ${type}:`, error);
+        return { type, question: null, success: false, error: error.message };
       }
+    });
 
-      // Deduct coin after successful generation
-      deductCoins(COIN_COSTS.GENERATE_QUESTION);
-      triggerCoinUpdate();
+    const allResults = await Promise.all(promises);
 
-      setGeneratedQuestion(data);
-      setIsSaved(false); // Reset saved state for new question
-    } catch (error: any) {
-      console.error('Question generation error:', error);
-      alert(`문제 생성 실패: ${error.message}`);
-    } finally {
-      setIsGeneratingQuestion(false);
+    for (const result of allResults) {
+      if (result.success && result.question) {
+        results.push({ type: result.type, question: result.question });
+        successCount++;
+        // Deduct coin for each successful generation
+        deductCoins(COIN_COSTS.GENERATE_QUESTION);
+      }
+      setGenerationProgress(prev => prev ? { ...prev, current: prev.current + 1 } : null);
+    }
+
+    triggerCoinUpdate();
+    setGeneratedQuestions(results);
+    setSavedIndexes(new Set());
+    setIsGeneratingQuestion(false);
+    setGenerationProgress(null);
+
+    if (successCount === 0) {
+      toast.error('문제 생성에 실패했습니다.');
+    } else if (successCount < selectedQuestionTypes.length) {
+      toast(`${selectedQuestionTypes.length}개 중 ${successCount}개 문제가 생성되었습니다.`, {
+        icon: '⚠️',
+      });
+    } else {
+      toast.success(`${successCount}개 문제가 생성되었습니다!`);
     }
   };
 
   const handleBackToStep1 = () => {
     setStep(1);
-    setGeneratedQuestion(null);
+    setGeneratedQuestions([]);
   };
 
   const handleReset = () => {
     setStep(1);
     setKeywords('');
     setGeneratedArticle(null);
-    setGeneratedQuestion(null);
-    setIsSaved(false);
+    setGeneratedQuestions([]);
+    setSelectedQuestionTypes([]);
+    setSavedIndexes(new Set());
   };
 
-  const handleSaveToArchive = () => {
-    if (!generatedQuestion || !generatedArticle) return;
+  // Save individual question
+  const handleSaveQuestion = (index: number) => {
+    if (!generatedArticle || savedIndexes.has(index)) return;
+    const { type, question } = generatedQuestions[index];
     saveToArchive({
-      questionType: selectedQuestionType,
-      question: generatedQuestion,
+      questionType: type,
+      question: question,
       article: generatedArticle,
     });
-    setIsSaved(true);
+    setSavedIndexes(prev => new Set(prev).add(index));
+    toast.success('문제가 저장되었습니다!');
   };
+
+  // Save all unsaved questions
+  const handleSaveAllToArchive = () => {
+    if (generatedQuestions.length === 0 || !generatedArticle) return;
+    let savedCount = 0;
+    generatedQuestions.forEach(({ type, question }, index) => {
+      if (!savedIndexes.has(index)) {
+        saveToArchive({
+          questionType: type,
+          question: question,
+          article: generatedArticle,
+        });
+        savedCount++;
+      }
+    });
+    if (savedCount > 0) {
+      setSavedIndexes(new Set(generatedQuestions.map((_, i) => i)));
+      toast.success(`${savedCount}개 문제가 저장되었습니다!`);
+    } else {
+      toast('이미 모든 문제가 저장되었습니다.', { icon: 'ℹ️' });
+    }
+  };
+
+  // 로딩 중이거나 로그인 안 했으면 로딩 화면 표시
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-[var(--color-cream)] flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-[var(--color-spark)] border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-cream)]">
+      {/* Toast Container */}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            borderRadius: '12px',
+            padding: '12px 20px',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-[var(--color-cream)]/90 border-b border-[var(--color-spark)]/10">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -257,17 +371,28 @@ export default function WorkflowPage() {
               ENG-SPARKLING
             </span>
           </a>
-          <div className="flex items-center gap-4">
-            <CoinDisplay showLabel />
-            <a href="/archive" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors flex items-center gap-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-              </svg>
-              저장함
-            </a>
-            <a href="/" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
-              ← 홈으로
-            </a>
+          <div className="flex items-center gap-6">
+            {/* 네비게이션 */}
+            <nav className="flex items-center gap-4">
+              <a href="/archive" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                저장함
+              </a>
+              <a href="/" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
+                홈
+              </a>
+            </nav>
+
+            {/* 구분선 */}
+            <div className="h-6 w-px bg-[var(--color-spark)]/20" />
+
+            {/* 사용자 영역 */}
+            <div className="flex items-center gap-4">
+              <CoinDisplay showLabel />
+              <AuthButton />
+            </div>
           </div>
         </div>
       </header>
@@ -453,48 +578,57 @@ export default function WorkflowPage() {
 
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-ink)] mb-3">
-                    문제 유형 선택 <span className="text-[var(--color-text-muted)]">(12가지)</span>
-                  </label>
-                  {/* Custom Dropdown to fix z-index issues */}
-                  <div ref={dropdownRef} className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="w-full px-4 py-3 bg-[var(--color-cream)] border border-[var(--color-spark)]/20 rounded-xl focus:ring-2 focus:ring-[var(--color-spark)]/30 focus:border-[var(--color-spark)] transition-all outline-none cursor-pointer text-left flex items-center justify-between"
-                    >
-                      <span>{QUESTION_TYPE_LABELS[selectedQuestionType]}</span>
-                      <svg className={`w-5 h-5 text-[var(--color-text-muted)] transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {isDropdownOpen && (
-                      <div className="absolute z-50 w-full mt-2 bg-white border border-[var(--color-spark)]/20 rounded-xl shadow-lg max-h-64 overflow-y-auto">
-                        {(Object.keys(QUESTION_TYPE_LABELS) as QuestionType[]).map((type) => (
-                          <button
-                            key={type}
-                            type="button"
-                            onClick={() => {
-                              setSelectedQuestionType(type);
-                              setIsDropdownOpen(false);
-                            }}
-                            className={`w-full px-4 py-3 text-left hover:bg-[var(--color-spark)]/5 transition-colors ${
-                              selectedQuestionType === type
-                                ? 'bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] font-medium'
-                                : 'text-[var(--color-text)]'
-                            } first:rounded-t-xl last:rounded-b-xl`}
-                          >
-                            {QUESTION_TYPE_LABELS[type]}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-medium text-[var(--color-ink)]">
+                      문제 유형 선택 <span className="text-[var(--color-text-muted)]">(12가지, 복수 선택 가능)</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={selectAllTypes}
+                        className="text-xs px-2 py-1 text-[var(--color-spark)] hover:bg-[var(--color-spark)]/10 rounded transition-colors"
+                      >
+                        전체선택
+                      </button>
+                      <button
+                        type="button"
+                        onClick={deselectAllTypes}
+                        className="text-xs px-2 py-1 text-[var(--color-text-muted)] hover:bg-[var(--color-ink)]/5 rounded transition-colors"
+                      >
+                        선택해제
+                      </button>
+                    </div>
                   </div>
+                  {/* Chip/Tag Multi-select UI */}
+                  <div className="flex flex-wrap gap-2">
+                    {(Object.keys(QUESTION_TYPE_LABELS) as QuestionType[]).map((type) => {
+                      const isSelected = selectedQuestionTypes.includes(type);
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => toggleQuestionType(type)}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                            isSelected
+                              ? 'bg-gradient-to-r from-[var(--color-spark)] to-[var(--color-mint)] text-white border-transparent'
+                              : 'bg-[var(--color-cream)] text-[var(--color-text)] hover:bg-[var(--color-cream-dark)] border-[var(--color-spark)]/20'
+                          }`}
+                        >
+                          {QUESTION_TYPE_LABELS[type]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedQuestionTypes.length > 0 && (
+                    <p className="text-sm text-[var(--color-spark)] mt-3 font-medium">
+                      {selectedQuestionTypes.length}개 유형 선택됨
+                    </p>
+                  )}
                 </div>
 
                 <button
                   onClick={handleGenerateQuestion}
-                  disabled={isGeneratingQuestion}
+                  disabled={isGeneratingQuestion || selectedQuestionTypes.length === 0}
                   className="w-full bg-gradient-to-r from-[var(--color-mint)] to-[var(--color-spark)] text-white py-4 rounded-full font-semibold text-lg hover:shadow-lg hover:shadow-[var(--color-mint)]/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {isGeneratingQuestion ? (
@@ -503,117 +637,166 @@ export default function WorkflowPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
-                      문제 생성 중...
+                      {generationProgress
+                        ? `문제 생성 중... (${generationProgress.current}/${generationProgress.total})`
+                        : '문제 생성 중...'}
                     </span>
                   ) : (
                     <span className="flex items-center justify-center gap-3">
-                      문제 생성하기
-                      <CoinCost amount={COIN_COSTS.GENERATE_QUESTION} />
+                      {selectedQuestionTypes.length > 0
+                        ? `${selectedQuestionTypes.length}개 문제 생성하기`
+                        : '문제 유형을 선택하세요'}
+                      {selectedQuestionTypes.length > 0 && (
+                        <CoinCost amount={selectedQuestionTypes.length * COIN_COSTS.GENERATE_QUESTION} />
+                      )}
                     </span>
                   )}
                 </button>
               </div>
             </div>
 
-            {/* Generated Question Display */}
-            {generatedQuestion && (
-              <div className="question-card animate-scale-in">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="font-display text-xl font-semibold text-[var(--color-ink)]">
-                    생성된 문제
-                  </h2>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={handleSaveToArchive}
-                      disabled={isSaved}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
-                        isSaved
-                          ? 'bg-[var(--color-mint)]/20 text-[var(--color-mint)] cursor-default'
-                          : 'bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] hover:bg-[var(--color-spark)]/20'
-                      }`}
-                    >
-                      {isSaved ? (
-                        <>
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                          저장됨
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                          </svg>
-                          저장하기
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleReset}
-                      className="px-4 py-2 bg-[var(--color-cream-dark)] text-[var(--color-text)] rounded-full text-sm font-medium hover:bg-[var(--color-ink)]/10 transition-colors"
-                    >
-                      처음부터 다시
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  {/* Question */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-[var(--color-ink)] mb-2">
-                      {generatedQuestion.question}
-                    </h3>
-                    <p className="text-xs text-[var(--color-text-muted)]">
-                      생성 시각: {new Date().toLocaleString('ko-KR')}
-                    </p>
-                  </div>
-
-                  {/* Passage */}
-                  <div className="p-6 bg-[var(--color-cream)] rounded-xl border border-[var(--color-spark)]/10">
-                    <h4 className="font-semibold text-[var(--color-ink)] mb-3 text-sm">지문</h4>
-                    <p
-                      className="whitespace-pre-wrap leading-relaxed text-[var(--color-text)] [&>u]:underline [&>u]:decoration-[var(--color-spark)] [&>u]:decoration-2 [&>u]:underline-offset-2 [&>u]:font-medium [&>u]:text-[var(--color-spark-deep)]"
-                      dangerouslySetInnerHTML={{ __html: generatedQuestion.modifiedPassage }}
-                    />
-                    {generatedQuestion.sentenceToInsert && (
-                      <div className="mt-4 p-4 bg-gradient-to-r from-[var(--color-spark)]/5 to-[var(--color-mint)]/5 rounded-lg border border-[var(--color-spark)]/20">
-                        <p className="font-semibold text-[var(--color-ink)] text-sm mb-1">주어진 문장:</p>
-                        <p className="text-[var(--color-text)] italic">{generatedQuestion.sentenceToInsert}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Choices */}
-                  <div>
-                    <h4 className="font-semibold text-[var(--color-ink)] mb-3 text-sm">선택지</h4>
-                    <div className="space-y-3">
-                      {generatedQuestion.choices.map((choice, index) => (
-                        <div
-                          key={index}
-                          className={`choice-item ${index + 1 === generatedQuestion.answer ? 'correct' : ''}`}
-                        >
-                          <span className="font-medium text-[var(--color-text)]">
-                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] text-sm font-semibold mr-3">
-                              {index + 1}
-                            </span>
-                            {choice}
-                          </span>
-                        </div>
-                      ))}
+            {/* Generated Questions Display */}
+            {generatedQuestions.length > 0 && (
+              <div className="space-y-6 animate-fade-in-up">
+                {/* Header with actions */}
+                <div className="card-elevated p-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-display text-xl font-semibold text-[var(--color-ink)]">
+                      생성된 문제 ({generatedQuestions.length}개)
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-[var(--color-text-muted)]">
+                        {savedIndexes.size}/{generatedQuestions.length} 저장됨
+                      </span>
+                      <button
+                        onClick={handleSaveAllToArchive}
+                        disabled={savedIndexes.size === generatedQuestions.length}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+                          savedIndexes.size === generatedQuestions.length
+                            ? 'bg-[var(--color-mint)]/20 text-[var(--color-mint)] cursor-default'
+                            : 'bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] hover:bg-[var(--color-spark)]/20'
+                        }`}
+                      >
+                        {savedIndexes.size === generatedQuestions.length ? (
+                          <>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            전체 저장됨
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                            </svg>
+                            전체 저장
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={handleReset}
+                        className="px-4 py-2 bg-[var(--color-cream-dark)] text-[var(--color-text)] rounded-full text-sm font-medium hover:bg-[var(--color-ink)]/10 transition-colors"
+                      >
+                        처음부터 다시
+                      </button>
                     </div>
                   </div>
-
-                  {/* Explanation */}
-                  <div className="p-6 bg-gradient-to-br from-[var(--color-ink)] to-[var(--color-ink-light)] rounded-xl text-white">
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <svg className="w-5 h-5 text-[var(--color-spark-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                      </svg>
-                      해설
-                    </h4>
-                    <p className="text-white/90 leading-relaxed">{generatedQuestion.explanation}</p>
-                  </div>
                 </div>
+
+                {/* Question Cards */}
+                {generatedQuestions.map(({ type, question }, qIndex) => (
+                  <div key={qIndex} className="question-card animate-scale-in" style={{ animationDelay: `${qIndex * 100}ms` }}>
+                    <div className="space-y-6">
+                      {/* Question Header */}
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="px-2 py-1 bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] text-xs font-medium rounded">
+                              {QUESTION_TYPE_LABELS[type]}
+                            </span>
+                            <span className="text-xs text-[var(--color-text-muted)]">
+                              #{qIndex + 1}
+                            </span>
+                          </div>
+                          <h3 className="text-lg font-semibold text-[var(--color-ink)]">
+                            {question.question}
+                          </h3>
+                        </div>
+                        <button
+                          onClick={() => handleSaveQuestion(qIndex)}
+                          disabled={savedIndexes.has(qIndex)}
+                          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                            savedIndexes.has(qIndex)
+                              ? 'bg-[var(--color-mint)]/20 text-[var(--color-mint)] cursor-default'
+                              : 'bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] hover:bg-[var(--color-spark)]/20'
+                          }`}
+                        >
+                          {savedIndexes.has(qIndex) ? (
+                            <>
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                              저장됨
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                              </svg>
+                              저장
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Passage */}
+                      <div className="p-6 bg-[var(--color-cream)] rounded-xl border border-[var(--color-spark)]/10">
+                        <h4 className="font-semibold text-[var(--color-ink)] mb-3 text-sm">지문</h4>
+                        <p
+                          className="whitespace-pre-wrap leading-relaxed text-[var(--color-text)] [&>u]:underline [&>u]:decoration-[var(--color-spark)] [&>u]:decoration-2 [&>u]:underline-offset-2 [&>u]:font-medium [&>u]:text-[var(--color-spark-deep)]"
+                          dangerouslySetInnerHTML={{ __html: question.modifiedPassage }}
+                        />
+                        {question.sentenceToInsert && (
+                          <div className="mt-4 p-4 bg-gradient-to-r from-[var(--color-spark)]/5 to-[var(--color-mint)]/5 rounded-lg border border-[var(--color-spark)]/20">
+                            <p className="font-semibold text-[var(--color-ink)] text-sm mb-1">주어진 문장:</p>
+                            <p className="text-[var(--color-text)] italic">{question.sentenceToInsert}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Choices */}
+                      <div>
+                        <h4 className="font-semibold text-[var(--color-ink)] mb-3 text-sm">선택지</h4>
+                        <div className="space-y-3">
+                          {question.choices.map((choice, index) => (
+                            <div
+                              key={index}
+                              className={`choice-item ${index + 1 === question.answer ? 'correct' : ''}`}
+                            >
+                              <span className="font-medium text-[var(--color-text)]">
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] text-sm font-semibold mr-3">
+                                  {index + 1}
+                                </span>
+                                {choice}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Explanation */}
+                      <div className="p-6 bg-gradient-to-br from-[var(--color-ink)] to-[var(--color-ink-light)] rounded-xl text-white">
+                        <h4 className="font-semibold mb-3 flex items-center gap-2">
+                          <svg className="w-5 h-5 text-[var(--color-spark-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          </svg>
+                          해설
+                        </h4>
+                        <p className="text-white/90 leading-relaxed">{question.explanation}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
