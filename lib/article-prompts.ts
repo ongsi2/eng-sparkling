@@ -72,6 +72,7 @@ Output:
 - Use ALL keywords naturally
 - Match the target word count (±20 words)
 - Match the difficulty level vocabulary
+- IMPORTANT: Separate paragraphs with double newlines (\\n\\n) in the JSON
 - Return ONLY valid JSON, no markdown
 
 Generate the article now:

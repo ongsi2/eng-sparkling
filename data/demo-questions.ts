@@ -1,11 +1,11 @@
 /**
  * 데모용 고정 지문 및 미리 생성된 문제들
- * 2025학년도 수능 영어 20번 지문 기반
+ * 2024학년도 수능 영어 31번 지문 기반
  */
 
 export const DEMO_PASSAGE = {
-  title: "2025학년도 수능 영어평가 20번 지문",
-  content: `We almost universally accept that playing video games is at best a pleasant break from a student's learning and more often what prevents a student from accomplishing their goals. Games catch and hold attention in a way that few things can. And yet once they have our focus, they rarely seem to offer anything meaningful to help students grow in their lives outside the games. While this may be true for many games, we are too easily ignoring a valuable tool that could be used to enhance productivity instead of derailing it. Rather, it is desirable that we develop games that connect to the learning outcomes we want for our students. This will enable educators to take advantage of games' attention commanding capacities and allow our students to enjoy their games while learning.`,
+  title: "2024학년도 수능 영어 31번 지문",
+  content: `The most obvious difference between music and language is that music does not refer to anything concrete. Although music can evoke images, feelings, and associations, it does not directly denote objects, actions, or concepts the way words do. This apparent limitation, however, is also one of music's greatest strengths. Because music lacks explicit referential meaning, it can communicate something more universal and immediate. The emotional content of a piece of music is not filtered through the mediation of language; it strikes us directly. Music bypasses the rational, analytical mind and speaks directly to our emotions. This is why music can move us so profoundly, even when we cannot articulate exactly what it is expressing. The meaning of music lies not in what it refers to but in how it makes us feel.`,
 };
 
 export type QuestionType =
@@ -56,135 +56,135 @@ export interface DemoQuestion {
 export const DEMO_QUESTIONS: Record<QuestionType, DemoQuestion> = {
   GRAMMAR_INCORRECT: {
     question: "다음 글의 밑줄 친 부분 중, 어법상 틀린 것은?",
-    modifiedPassage: `We almost universally accept that playing video games is at best a pleasant break from a student's learning and more often ①what prevents a student from accomplishing their goals. Games catch and hold attention in a way that few things can. And yet once they have our focus, they rarely seem ②to offer anything meaningful to help students grow in their lives outside the games. While this may be true for many games, we are too easily ③ignoring a valuable tool that could be used to enhance productivity instead of derailing it. Rather, it is desirable that we ④develops games that connect to the learning outcomes we want for our students. This will enable educators to take advantage of games' attention commanding capacities and ⑤allow our students to enjoy their games while learning.`,
+    modifiedPassage: `The most obvious difference between music and language is that music does not refer to anything concrete. Although music can evoke images, feelings, and associations, it does not directly denote objects, actions, or concepts the way words ①do. This apparent limitation, however, is also one of music's greatest strengths. Because music lacks explicit referential meaning, it can communicate something ②more universal and immediate. The emotional content of a piece of music is not filtered through the mediation of language; it ③strikes us directly. Music bypasses the rational, analytical mind and speaks directly to our emotions. This is why music can move us so ④profound, even when we cannot articulate exactly what it is ⑤expressing.`,
     choices: ["①", "②", "③", "④", "⑤"],
     answer: 4,
-    explanation: "④ develops → develop: 'it is desirable that + 주어 + (should) + 동사원형' 구문에서 that절의 동사는 동사원형을 사용해야 합니다. 이는 당위성을 나타내는 형용사(desirable, important, necessary 등) 뒤의 that절에서 사용되는 가정법 현재 용법입니다."
+    explanation: "④ profound → profoundly: 동사 'move'를 수식하는 부사가 필요합니다. 형용사 'profound'가 아닌 부사 'profoundly'가 와야 '매우 깊이 감동시키다'라는 의미가 됩니다."
   },
   SELECT_INCORRECT_WORD: {
     question: "다음 글의 밑줄 친 부분 중, 문맥상 낱말의 쓰임이 적절하지 않은 것은?",
-    modifiedPassage: `We almost universally accept that playing video games is at best a ①pleasant break from a student's learning and more often what prevents a student from accomplishing their goals. Games catch and hold attention in a way that few things can. And yet once they have our focus, they rarely seem to offer anything ②meaningful to help students grow in their lives outside the games. While this may be true for many games, we are too easily ③ignoring a valuable tool that could be used to ④diminish productivity instead of derailing it. Rather, it is desirable that we develop games that connect to the learning outcomes we want for our students. This will enable educators to take advantage of games' attention commanding capacities and allow our students to ⑤enjoy their games while learning.`,
+    modifiedPassage: `The most obvious difference between music and language is that music does not refer to anything ①concrete. Although music can evoke images, feelings, and associations, it does not directly denote objects, actions, or concepts the way words do. This apparent ②limitation, however, is also one of music's greatest strengths. Because music lacks explicit referential meaning, it can communicate something more ③restricted and immediate. The emotional content of a piece of music is not filtered through the mediation of language; it strikes us ④directly. Music bypasses the rational, analytical mind and speaks directly to our emotions. This is why music can move us so ⑤profoundly, even when we cannot articulate exactly what it is expressing.`,
     choices: ["①", "②", "③", "④", "⑤"],
-    answer: 4,
-    explanation: "④ diminish → enhance: 문맥상 게임이 생산성을 '감소시키는' 것이 아니라 '향상시키는' 도구로 사용될 수 있다는 내용이므로, diminish(감소시키다)는 enhance(향상시키다)로 바꿔야 적절합니다."
+    answer: 3,
+    explanation: "③ restricted → universal: 문맥상 음악은 명시적 의미가 없기 때문에 '더 제한적인' 것이 아니라 '더 보편적이고 즉각적인' 것을 전달할 수 있다는 내용입니다. 따라서 restricted(제한적인)는 universal(보편적인)로 바꿔야 적절합니다."
   },
   PICK_UNDERLINE: {
-    question: "밑줄 친 'derailing it'이 다음 글에서 의미하는 바로 가장 적절한 것은?",
-    modifiedPassage: `We almost universally accept that playing video games is at best a pleasant break from a student's learning and more often what prevents a student from accomplishing their goals. Games catch and hold attention in a way that few things can. And yet once they have our focus, they rarely seem to offer anything meaningful to help students grow in their lives outside the games. While this may be true for many games, we are too easily ignoring a valuable tool that could be used to enhance productivity instead of derailing it. Rather, it is desirable that we develop games that connect to the learning outcomes we want for our students. This will enable educators to take advantage of games' attention commanding capacities and allow our students to enjoy their games while learning.`,
+    question: "밑줄 친 'bypasses the rational, analytical mind'가 다음 글에서 의미하는 바로 가장 적절한 것은?",
+    modifiedPassage: `The most obvious difference between music and language is that music does not refer to anything concrete. Although music can evoke images, feelings, and associations, it does not directly denote objects, actions, or concepts the way words do. This apparent limitation, however, is also one of music's greatest strengths. Because music lacks explicit referential meaning, it can communicate something more universal and immediate. The emotional content of a piece of music is not filtered through the mediation of language; it strikes us directly. Music <u>bypasses the rational, analytical mind</u> and speaks directly to our emotions. This is why music can move us so profoundly, even when we cannot articulate exactly what it is expressing.`,
     choices: [
-      "학습 효과를 극대화하는 것",
-      "생산성 향상을 방해하는 것",
-      "게임의 장점을 활용하는 것",
-      "학생들의 집중력을 높이는 것",
-      "교육적 성과를 달성하는 것"
+      "논리적 사고 과정을 거치지 않는다",
+      "언어적 표현을 통해 전달된다",
+      "구체적인 대상을 지시한다",
+      "이성적 판단을 강화한다",
+      "분석적 능력을 향상시킨다"
     ],
-    answer: 2,
-    explanation: "'derailing'은 '탈선시키다, 방해하다'라는 의미입니다. 문맥상 게임이 생산성을 향상시키는 대신(instead of) 방해할 수 있다는 내용이므로, 'derailing it'은 '생산성 향상을 방해하는 것'을 의미합니다."
+    answer: 1,
+    explanation: "밑줄 친 'bypasses the rational, analytical mind'에서 'bypass'는 '우회하다, 건너뛰다'라는 의미입니다. 따라서 ① '논리적 사고 과정을 거치지 않는다'가 정답입니다. 음악이 이성적이고 분석적인 마음을 우회한다는 것은 논리적 사고 과정 없이 직접 감정에 호소한다는 의미입니다."
   },
   PICK_SUBJECT: {
     question: "다음 글의 주제로 가장 적절한 것은?",
     modifiedPassage: DEMO_PASSAGE.content,
     choices: [
-      "비디오 게임이 학생들의 학습에 미치는 부정적 영향",
-      "게임 중독을 예방하기 위한 교육적 접근 방법",
-      "교육 목표와 연계된 게임 개발의 필요성",
-      "학생들의 집중력 향상을 위한 다양한 방법",
-      "전통적 교육 방식과 게임 기반 학습의 비교"
+      "음악과 언어의 구조적 유사성",
+      "음악이 감정에 직접 호소하는 이유",
+      "언어가 음악보다 우월한 점",
+      "음악 교육의 필요성과 방법",
+      "감정 표현에서 언어의 역할"
     ],
-    answer: 3,
-    explanation: "글의 핵심 내용은 게임이 학습을 방해하는 도구로만 인식되지만, 교육 목표와 연결된 게임을 개발하면 학생들이 게임을 즐기면서도 학습할 수 있다는 것입니다. 따라서 주제는 '교육 목표와 연계된 게임 개발의 필요성'입니다."
+    answer: 2,
+    explanation: "글의 핵심 내용은 음악이 언어와 달리 구체적인 것을 지시하지 않지만, 바로 그 점 때문에 이성적 사고를 거치지 않고 감정에 직접 호소할 수 있다는 것입니다. 따라서 주제는 '음악이 감정에 직접 호소하는 이유'입니다."
   },
   PICK_TITLE: {
     question: "다음 글의 제목으로 가장 적절한 것은?",
     modifiedPassage: DEMO_PASSAGE.content,
     choices: [
-      "Video Games: The Hidden Enemy of Education",
-      "Why Students Prefer Games Over Studying",
-      "Games as Educational Tools: Untapped Potential",
-      "The Dark Side of Gaming Addiction",
-      "Traditional vs. Modern Teaching Methods"
+      "Music vs. Language: A Structural Analysis",
+      "Why Music Speaks Directly to Our Hearts",
+      "The Evolution of Musical Expression",
+      "Learning Languages Through Music",
+      "The Rational Basis of Musical Appreciation"
     ],
-    answer: 3,
-    explanation: "글은 게임이 학습 방해 요소로만 여겨지지만, 실제로는 교육적 도구로 활용될 수 있는 잠재력이 있다고 주장합니다. 따라서 'Games as Educational Tools: Untapped Potential(교육 도구로서의 게임: 미개발된 잠재력)'이 가장 적절한 제목입니다."
+    answer: 2,
+    explanation: "글은 음악이 언어와 달리 구체적 의미 없이도 감정에 직접 호소할 수 있다는 점을 강조합니다. 'Why Music Speaks Directly to Our Hearts(음악이 왜 우리 마음에 직접 말하는가)'가 이 내용을 가장 잘 담고 있습니다."
   },
   CORRECT_ANSWER: {
     question: "다음 글의 내용과 일치하는 것은?",
     modifiedPassage: DEMO_PASSAGE.content,
     choices: [
-      "비디오 게임은 학생들의 집중력을 떨어뜨린다.",
-      "대부분의 게임은 학생들의 성장에 도움이 된다.",
-      "게임은 학생들의 주의를 효과적으로 끌 수 있다.",
-      "교육자들은 이미 게임을 교육에 활용하고 있다.",
-      "모든 게임은 생산성 향상에 기여한다."
+      "음악은 언어처럼 구체적인 대상을 지시한다.",
+      "음악의 의미는 언어를 통해 해석된다.",
+      "음악은 이성적 분석을 거쳐 감정에 도달한다.",
+      "음악은 명시적 의미 없이도 보편적으로 소통한다.",
+      "음악의 감동은 정확히 말로 표현할 수 있다."
     ],
-    answer: 3,
-    explanation: "글에서 'Games catch and hold attention in a way that few things can'이라고 언급하며, 게임이 다른 것들과 비교할 수 없을 정도로 주의를 끌고 유지할 수 있다고 설명합니다."
+    answer: 4,
+    explanation: "글에서 'Because music lacks explicit referential meaning, it can communicate something more universal and immediate'라고 언급하며, 음악이 명시적 의미가 없기 때문에 오히려 더 보편적이고 즉각적으로 소통할 수 있다고 설명합니다."
   },
   INCORRECT_ANSWER: {
     question: "다음 글의 내용과 일치하지 않는 것은?",
     modifiedPassage: DEMO_PASSAGE.content,
     choices: [
-      "게임은 주의를 사로잡는 능력이 뛰어나다.",
-      "많은 게임들이 학생들의 실생활 성장에 도움이 되지 않는다.",
-      "게임은 생산성을 향상시키는 도구로 활용될 수 있다.",
-      "현재 대부분의 교육자들은 게임의 교육적 가치를 인정한다.",
-      "교육 목표와 연결된 게임 개발이 바람직하다."
+      "음악은 이미지, 감정, 연상을 불러일으킬 수 있다.",
+      "음악은 언어처럼 사물이나 개념을 직접 지시하지 않는다.",
+      "음악의 감정적 내용은 언어의 중재 없이 전달된다.",
+      "음악은 분석적 사고를 통해 감상자에게 전달된다.",
+      "음악은 표현하는 것이 무엇인지 정확히 말할 수 없어도 감동을 준다."
     ],
     answer: 4,
-    explanation: "글에서는 게임이 학습을 방해하는 것으로 '보편적으로 인식된다(universally accept)'고 하며, 게임의 교육적 가치를 '너무 쉽게 무시하고 있다(too easily ignoring)'고 언급합니다. 따라서 '현재 대부분의 교육자들은 게임의 교육적 가치를 인정한다'는 내용과 일치하지 않습니다."
+    explanation: "글에서 'Music bypasses the rational, analytical mind and speaks directly to our emotions'라고 명시하고 있습니다. 음악은 분석적 사고를 '우회'하여 감정에 직접 호소한다고 했으므로, '분석적 사고를 통해 전달된다'는 내용과 일치하지 않습니다."
   },
   BLANK_WORD: {
     question: "다음 빈칸에 들어갈 말로 가장 적절한 것은?",
-    modifiedPassage: `We almost universally accept that playing video games is at best a pleasant break from a student's learning and more often what prevents a student from accomplishing their goals. Games catch and hold attention in a way that few things can. And yet once they have our focus, they rarely seem to offer anything meaningful to help students grow in their lives outside the games. While this may be true for many games, we are too easily ignoring a valuable tool that could be used to _________________ instead of derailing it. Rather, it is desirable that we develop games that connect to the learning outcomes we want for our students.`,
+    modifiedPassage: `The most obvious difference between music and language is that music does not refer to anything concrete. Although music can evoke images, feelings, and associations, it does not directly denote objects, actions, or concepts the way words do. This apparent limitation, however, is also one of music's greatest strengths. Because music lacks explicit referential meaning, it can communicate something more universal and immediate. The emotional content of a piece of music is not filtered through the mediation of language; it strikes us directly. Music bypasses the rational, analytical mind and ___________________. This is why music can move us so profoundly, even when we cannot articulate exactly what it is expressing.`,
     choices: [
-      "eliminate distractions",
-      "enhance productivity",
-      "reduce screen time",
-      "prevent addiction",
-      "replace traditional education"
+      "requires logical interpretation",
+      "speaks directly to our emotions",
+      "depends on linguistic understanding",
+      "demands analytical thinking",
+      "needs verbal explanation"
     ],
     answer: 2,
-    explanation: "문맥상 게임이 생산성을 '방해하는(derailing)' 대신 무언가 긍정적인 역할을 할 수 있다는 내용입니다. 뒤에서 교육 목표와 연결된 게임 개발의 필요성을 언급하므로, '생산성을 향상시키다(enhance productivity)'가 가장 적절합니다."
+    explanation: "문맥상 음악은 이성적, 분석적 마음을 '우회'하고 무언가에 '직접' 말한다는 흐름입니다. 앞뒤 문맥에서 감정과 직접적인 전달을 강조하고 있으므로, 'speaks directly to our emotions(감정에 직접 말하다)'가 가장 적절합니다."
   },
   COMPLETE_SUMMARY: {
     question: "다음 글의 내용을 한 문장으로 요약하고자 한다. 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은?",
     modifiedPassage: `${DEMO_PASSAGE.content}
 
-→ While video games are often seen as (A)_______ to learning, they can become valuable (B)_______ tools if designed with educational goals in mind.`,
+→ Unlike language that refers to concrete things, music's lack of (A)_______ meaning allows it to connect with our (B)_______ more directly and universally.`,
     choices: [
-      "(A) obstacles — (B) educational",
-      "(A) supplements — (B) entertainment",
-      "(A) alternatives — (B) assessment",
-      "(A) prerequisites — (B) motivational",
-      "(A) additions — (B) recreational"
+      "(A) explicit — (B) emotions",
+      "(A) emotional — (B) intellect",
+      "(A) universal — (B) thoughts",
+      "(A) abstract — (B) logic",
+      "(A) implicit — (B) analysis"
     ],
     answer: 1,
-    explanation: "글의 요지는 게임이 학습의 '장애물(obstacles)'로 여겨지지만, 교육 목표를 염두에 두고 설계하면 '교육적(educational)' 도구가 될 수 있다는 것입니다."
+    explanation: "글의 요지는 음악이 '명시적(explicit)' 의미가 없기 때문에 오히려 '감정(emotions)'에 더 직접적이고 보편적으로 연결될 수 있다는 것입니다."
   },
   IRRELEVANT_SENTENCE: {
     question: "다음 글에서 전체 흐름과 관계 없는 문장은?",
-    modifiedPassage: `①We almost universally accept that playing video games is at best a pleasant break from a student's learning and more often what prevents a student from accomplishing their goals. ②Games catch and hold attention in a way that few things can. ③The global video game industry has grown to be worth over 200 billion dollars annually. ④While this may be true for many games, we are too easily ignoring a valuable tool that could be used to enhance productivity instead of derailing it. ⑤Rather, it is desirable that we develop games that connect to the learning outcomes we want for our students.`,
+    modifiedPassage: `①The most obvious difference between music and language is that music does not refer to anything concrete. ②Although music can evoke images, feelings, and associations, it does not directly denote objects, actions, or concepts the way words do. ③The music industry has generated billions of dollars in revenue through streaming services and live concerts. ④Because music lacks explicit referential meaning, it can communicate something more universal and immediate. ⑤Music bypasses the rational, analytical mind and speaks directly to our emotions.`,
     choices: ["①", "②", "③", "④", "⑤"],
     answer: 3,
-    explanation: "③번 문장은 비디오 게임 산업의 경제적 규모에 대한 내용으로, 게임의 교육적 활용 가능성을 논하는 글의 전체 흐름과 관계가 없습니다."
+    explanation: "③번 문장은 음악 산업의 수익에 대한 내용으로, 음악이 언어와 달리 감정에 직접 호소한다는 글의 전체 흐름과 관계가 없습니다."
   },
   INSERT_SENTENCE: {
     question: "글의 흐름으로 보아, 주어진 문장이 들어가기에 가장 적절한 곳은?",
-    modifiedPassage: `We almost universally accept that playing video games is at best a pleasant break from a student's learning and more often what prevents a student from accomplishing their goals. ( ① ) Games catch and hold attention in a way that few things can. ( ② ) And yet once they have our focus, they rarely seem to offer anything meaningful to help students grow in their lives outside the games. ( ③ ) While this may be true for many games, we are too easily ignoring a valuable tool that could be used to enhance productivity instead of derailing it. ( ④ ) Rather, it is desirable that we develop games that connect to the learning outcomes we want for our students. ( ⑤ ) This will enable educators to take advantage of games' attention commanding capacities and allow our students to enjoy their games while learning.`,
-    sentenceToInsert: "This is precisely what makes games both appealing and potentially dangerous.",
+    modifiedPassage: `The most obvious difference between music and language is that music does not refer to anything concrete. ( ① ) Although music can evoke images, feelings, and associations, it does not directly denote objects, actions, or concepts the way words do. ( ② ) This apparent limitation, however, is also one of music's greatest strengths. ( ③ ) Because music lacks explicit referential meaning, it can communicate something more universal and immediate. ( ④ ) Music bypasses the rational, analytical mind and speaks directly to our emotions. ( ⑤ ) This is why music can move us so profoundly, even when we cannot articulate exactly what it is expressing.`,
+    sentenceToInsert: "The emotional content of a piece of music is not filtered through the mediation of language; it strikes us directly.",
     choices: ["①", "②", "③", "④", "⑤"],
-    answer: 2,
-    explanation: "주어진 문장의 'This'는 앞 문장에서 언급된 '게임이 주의를 끌고 유지하는 능력'을 가리킵니다. 또한 'appealing and potentially dangerous'는 게임의 양면성을 설명하며, 이는 ②번 뒤에 나오는 '의미 있는 것을 제공하지 못한다'는 내용과 자연스럽게 연결됩니다."
+    answer: 4,
+    explanation: "주어진 문장은 음악의 감정적 내용이 언어의 중재 없이 직접 전달된다는 내용입니다. ③번 뒤에서 음악이 더 보편적이고 즉각적으로 소통할 수 있다는 내용이 나온 후, 이를 구체화하는 주어진 문장이 오고, ⑤번 앞에서 음악이 감정에 직접 말한다는 내용으로 연결되는 것이 자연스럽습니다."
   },
   SENTENCE_ORDER: {
     question: "주어진 글 다음에 이어질 글의 순서로 가장 적절한 것은?",
-    modifiedPassage: `We almost universally accept that playing video games is at best a pleasant break from a student's learning and more often what prevents a student from accomplishing their goals.
+    modifiedPassage: `The most obvious difference between music and language is that music does not refer to anything concrete.
 
-(A) While this may be true for many games, we are too easily ignoring a valuable tool that could be used to enhance productivity instead of derailing it.
+(A) Because music lacks explicit referential meaning, it can communicate something more universal and immediate. Music bypasses the rational, analytical mind and speaks directly to our emotions.
 
-(B) Games catch and hold attention in a way that few things can. And yet once they have our focus, they rarely seem to offer anything meaningful to help students grow in their lives outside the games.
+(B) Although music can evoke images, feelings, and associations, it does not directly denote objects, actions, or concepts the way words do. This apparent limitation, however, is also one of music's greatest strengths.
 
-(C) Rather, it is desirable that we develop games that connect to the learning outcomes we want for our students. This will enable educators to take advantage of games' attention commanding capacities.`,
+(C) This is why music can move us so profoundly, even when we cannot articulate exactly what it is expressing. The meaning of music lies not in what it refers to but in how it makes us feel.`,
     choices: [
       "(A) - (B) - (C)",
       "(A) - (C) - (B)",
@@ -193,6 +193,6 @@ export const DEMO_QUESTIONS: Record<QuestionType, DemoQuestion> = {
       "(C) - (A) - (B)"
     ],
     answer: 3,
-    explanation: "주어진 문장에서 게임에 대한 부정적 인식을 언급한 후, (B)에서 게임의 특성(주의를 끄는 능력)과 한계를 설명하고, (A)에서 'While this may be true'로 반전을 시작하며, (C)에서 'Rather'로 대안을 제시합니다. 따라서 (B)-(A)-(C) 순서가 적절합니다."
+    explanation: "주어진 문장에서 음악이 구체적인 것을 지시하지 않는다는 점을 언급한 후, (B)에서 이를 부연하며 이것이 오히려 장점이라고 전환합니다. (A)에서 명시적 의미가 없어 보편적으로 소통하며 감정에 직접 말한다고 설명하고, (C)에서 'This is why'로 결론을 맺습니다."
   },
 };
