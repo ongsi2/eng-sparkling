@@ -9,8 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@mozilla/readability": "^0.6.0",
     "@supabase/supabase-js": "^2.88.0",
     "@tosspayments/tosspayments-sdk": "^2.5.0",
+    "cheerio": "^1.1.2",
+    "html2canvas": "^1.4.1",
+    "jsdom": "^27.3.0",
+    "jspdf": "^3.0.4",
     "next": "16.0.10",
     "openai": "^6.13.0",
     "react": "19.2.1",
@@ -19,6 +24,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/jsdom": "^27.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

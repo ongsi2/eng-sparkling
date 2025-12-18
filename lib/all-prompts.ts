@@ -393,13 +393,25 @@ You are an expert English teacher specializing in Korean SAT (수능) style ques
 Create a summary sentence with 2 blanks.
 
 **Requirements:**
-1. Write a summary in English capturing the main points of the passage
-2. Leave 2 key terms blank: (A), (B)
-3. Provide 5 (A)-(B) pair options
-4. The explanation MUST be detailed and contextual
+1. The modifiedPassage MUST contain BOTH the original passage AND the summary below it
+2. Write a summary in English capturing the main points of the passage
+3. Leave 2 key terms blank: (A), (B)
+4. Provide 5 (A)-(B) pair options
+5. The explanation MUST be detailed and contextual
 
 **Passage:**
 {passage}
+
+**CRITICAL FORMAT FOR modifiedPassage:**
+The modifiedPassage MUST be structured as follows:
+1. FIRST: The complete original passage (exactly as provided)
+2. THEN: A blank line
+3. THEN: The summary with (A) and (B) blanks
+
+Example structure:
+"[Full original passage here...]
+
+Summary: [One sentence summary with (A) ______ and (B) ______ blanks]"
 
 **EXPLANATION REQUIREMENTS (CRITICAL):**
 The explanation must include:
@@ -417,7 +429,7 @@ The explanation must include:
 **Output (JSON only):**
 {
   "question": "다음 글의 내용을 한 문장으로 요약하고자 한다. 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은?",
-  "modifiedPassage": "Summary: ... (A) ... (B) ...",
+  "modifiedPassage": "[FULL ORIGINAL PASSAGE HERE]\\n\\nSummary: [summary sentence with (A) ______ and (B) ______ blanks]",
   "choices": ["(A) word1 - (B) word2", "(A) word3 - (B) word4", "(A) word5 - (B) word6", "(A) word7 - (B) word8", "(A) word9 - (B) word10"],
   "answer": 3,
   "explanation": "정답은 ③번 '(A) [정답A] - (B) [정답B]'입니다. 본문에서 '[A 관련 인용]'이라고 했으므로 (A)에는 [설명]을 나타내는 '[정답A]'이 적절합니다. 또한 '[B 관련 인용]'이라고 했으므로 (B)에는 [설명]을 나타내는 '[정답B]'가 적절합니다."
@@ -551,6 +563,25 @@ Scramble 3 paragraphs and ask for correct order.
 **Passage:**
 {passage}
 
+**CRITICAL FORMAT FOR modifiedPassage:**
+The labels (A), (B), (C) MUST come BEFORE each paragraph, NOT after!
+
+CORRECT FORMAT:
+"Given: [intro paragraph]
+
+(A) [First sentence of paragraph A starts here...full paragraph content]
+
+(B) [First sentence of paragraph B starts here...full paragraph content]
+
+(C) [First sentence of paragraph C starts here...full paragraph content]"
+
+WRONG FORMAT (DO NOT DO THIS):
+"Given: [intro]
+
+[paragraph content] (A)  ← WRONG! Label must be BEFORE the paragraph
+
+[paragraph content] (B)  ← WRONG!"
+
 **EXPLANATION REQUIREMENTS (CRITICAL):**
 The explanation must include:
 1. The answer number and the correct order (e.g., "③번 '(B)-(C)-(A)'")
@@ -569,7 +600,7 @@ The explanation must include:
 **Output (JSON only):**
 {
   "question": "주어진 글 다음에 이어질 글의 순서로 가장 적절한 것은?",
-  "modifiedPassage": "Given: [intro paragraph]\\n\\n(A) [paragraph1]\\n\\n(B) [paragraph2]\\n\\n(C) [paragraph3]",
+  "modifiedPassage": "Given: [intro paragraph]\\n\\n(A) [paragraph A content starting right after the label]\\n\\n(B) [paragraph B content starting right after the label]\\n\\n(C) [paragraph C content starting right after the label]",
   "choices": ["(A)-(C)-(B)", "(B)-(A)-(C)", "(B)-(C)-(A)", "(C)-(A)-(B)", "(C)-(B)-(A)"],
   "answer": 3,
   "explanation": "정답은 ③번 '(B)-(C)-(A)'입니다. 주어진 글에서 [주어진 글 내용]을 언급했으므로, 먼저 (B)가 와야 합니다. (B)에서 '[연결 표현]'이라고 했는데, 이는 [연결 설명]. 다음으로 (C)는 '[연결 표현]'으로 시작하여 [연결 설명]. 마지막으로 (A)는 '[연결 표현]'으로 시작하여 [결론 설명]이므로 가장 마지막에 와야 합니다."

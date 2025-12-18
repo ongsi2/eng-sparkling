@@ -7,6 +7,7 @@ import CoinDisplay from '@/app/components/CoinDisplay';
 import AuthButton from '@/app/components/AuthButton';
 import { useAuth } from '@/app/components/AuthProvider';
 import { getArchivedQuestions, deleteArchivedQuestion, ArchivedQuestion } from '@/lib/archive';
+import { PDFExportButton } from '@/app/components/PDFExportButton';
 
 type QuestionType =
   | 'GRAMMAR_INCORRECT'
@@ -37,29 +38,77 @@ const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   SENTENCE_ORDER: '글의 순서형',
 };
 
+// ArchivedQuestion을 PDFExportButton 형식으로 변환
+interface PDFQuestion {
+  type: string;
+  typeName: string;
+  questionText: string;
+  passage: string;
+  choices: string[];
+  answer: number;
+  explanation: string;
+  difficulty: string;
+}
 
-// Sparkling Logo Component
+function convertToExportQuestion(item: ArchivedQuestion): PDFQuestion {
+  return {
+    type: item.question_type,
+    typeName: QUESTION_TYPE_LABELS[item.question_type as QuestionType],
+    questionText: item.question.question,
+    passage: item.question.modifiedPassage,
+    choices: item.question.choices,
+    answer: item.question.answer,
+    explanation: item.question.explanation,
+    difficulty: item.article.difficulty,
+  };
+}
+
+
+// Sparkling Logo Component - Premium Design
 const SparklingLogo = () => (
-  <svg viewBox="0 0 32 32" className="w-8 h-8">
-    <defs>
-      <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#06b6d4' }} />
-        <stop offset="50%" style={{ stopColor: '#22d3ee' }} />
-        <stop offset="100%" style={{ stopColor: '#10b981' }} />
-      </linearGradient>
-      <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#0f172a' }} />
-        <stop offset="100%" style={{ stopColor: '#1e293b' }} />
-      </linearGradient>
-    </defs>
-    <circle cx="16" cy="16" r="15" fill="url(#bgGrad)" />
-    <g transform="translate(6, 7)">
-      <path d="M2 0 L12 0 L12 2.5 L5 2.5 L5 7 L10 7 L10 9.5 L5 9.5 L5 15.5 L12 15.5 L12 18 L2 18 Z" fill="#f8fafc" />
-      <path d="M15 4 L16 6 L18 7 L16 8 L15 10 L14 8 L12 7 L14 6 Z" fill="url(#sparkGrad)" />
-      <circle cx="18" cy="3" r="1" fill="#22d3ee" opacity="0.9" />
-      <circle cx="13" cy="12" r="0.8" fill="#10b981" opacity="0.8" />
-    </g>
-  </svg>
+  <div className="relative group">
+    <svg viewBox="0 0 40 40" className="w-10 h-10">
+      <defs>
+        <linearGradient id="logoGradArchive" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#06b6d4" />
+          <stop offset="50%" stopColor="#22d3ee" />
+          <stop offset="100%" stopColor="#10b981" />
+        </linearGradient>
+        <linearGradient id="shineGradArchive" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.4" />
+          <stop offset="50%" stopColor="#fff" stopOpacity="0" />
+          <stop offset="100%" stopColor="#fff" stopOpacity="0.1" />
+        </linearGradient>
+        <filter id="glowArchive">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      {/* Main circle with gradient border */}
+      <circle cx="20" cy="20" r="18" fill="none" stroke="url(#logoGradArchive)" strokeWidth="2.5" />
+      {/* Inner glow effect */}
+      <circle cx="20" cy="20" r="15" fill="url(#logoGradArchive)" fillOpacity="0.08" />
+      {/* Stylized 'E' mark */}
+      <g transform="translate(11, 10)">
+        <path
+          d="M0 0 L15 0 L15 3 L4 3 L4 8 L13 8 L13 11 L4 11 L4 17 L15 17 L15 20 L0 20 Z"
+          fill="url(#logoGradArchive)"
+          className="drop-shadow-sm"
+        />
+      </g>
+      {/* Sparkle effects */}
+      <g filter="url(#glowArchive)">
+        <circle cx="34" cy="9" r="2" fill="#22d3ee" className="animate-sparkle" />
+        <circle cx="7" cy="32" r="1.5" fill="#10b981" className="animate-sparkle delay-300" />
+        <path d="M35 22 L36 25 L39 26 L36 27 L35 30 L34 27 L31 26 L34 25 Z" fill="#67e8f9" className="animate-twinkle delay-200" />
+      </g>
+      {/* Shine overlay */}
+      <circle cx="20" cy="20" r="18" fill="url(#shineGradArchive)" />
+    </svg>
+  </div>
 );
 
 export default function ArchivePage() {
@@ -182,9 +231,18 @@ export default function ArchivePage() {
           <div className="grid md:grid-cols-3 gap-6">
             {/* Archive List */}
             <div className="md:col-span-1 space-y-3">
-              <h3 className="font-semibold text-[var(--color-ink)] mb-4">
-                문제 목록 ({archive.length}개)
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-[var(--color-ink)]">
+                  문제 목록 ({archive.length}개)
+                </h3>
+                {archive.length > 0 && (
+                  <PDFExportButton
+                    questions={archive.map(convertToExportQuestion)}
+                    title="저장된 문제집"
+                    variant="button"
+                  />
+                )}
+              </div>
               {archive.map((item) => (
                 <div
                   key={item.id}
@@ -231,9 +289,15 @@ export default function ArchivePage() {
               {selectedItem ? (
                 <div className="question-card animate-fade-in">
                   <div className="mb-6">
-                    <span className="inline-block px-3 py-1 text-sm font-medium bg-[var(--color-mint)]/10 text-[var(--color-mint)] rounded-full mb-3">
-                      {QUESTION_TYPE_LABELS[selectedItem.question_type as QuestionType]}
-                    </span>
+                    <div className="flex items-start justify-between">
+                      <span className="inline-block px-3 py-1 text-sm font-medium bg-[var(--color-mint)]/10 text-[var(--color-mint)] rounded-full mb-3">
+                        {QUESTION_TYPE_LABELS[selectedItem.question_type as QuestionType]}
+                      </span>
+                      <PDFExportButton
+                        question={convertToExportQuestion(selectedItem)}
+                        variant="icon"
+                      />
+                    </div>
                     <h3 className="text-lg font-semibold text-[var(--color-ink)]">
                       {selectedItem.question.question}
                     </h3>

@@ -1,6 +1,6 @@
-# ENG-SPARKLING 작업 핸드오프 (2024-12-17)
+# ENG-SPARKLING 작업 핸드오프 (2024-12-18)
 
-## 현재 상태: Supabase 연동 완료, 무관한 문장 프롬프트 개선 완료
+## 현재 상태: Google 로그인 버튼 추가 완료, Supabase Google Provider 활성화 필요
 
 ---
 
@@ -28,7 +28,32 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
 
 ---
 
-## 오늘(12/17) 완료된 작업
+## 오늘(12/18) 작업 내용
+
+### 1. Google 로그인 버튼 추가
+- **파일**: `app/login/page.tsx`
+- `signInWithGoogle` 함수 연결
+- Google 컬러 로고 SVG 버튼 추가
+- GitHub 버튼 위에 배치
+
+### 2. Supabase Google Provider 활성화 필요 (TODO)
+- **현재 상태**: 버튼 클릭 시 에러 발생
+  ```
+  {"code":400,"error_code":"validation_failed","msg":"Unsupported provider: provider is not enabled"}
+  ```
+- **해결 방법**:
+  1. Supabase Dashboard → Authentication → Providers → Google
+  2. Enable 토글 ON
+  3. Google Cloud Console에서 OAuth 클라이언트 ID/Secret 발급
+  4. 승인된 리디렉션 URI 추가: `https://qpbwmagotftvpcxndbpm.supabase.co/auth/v1/callback`
+  5. Supabase에 Client ID, Client Secret 입력
+
+### 참고: AuthProvider에 signInWithGoogle 함수는 이미 구현됨
+- **파일**: `app/components/AuthProvider.tsx` (59-66줄)
+
+---
+
+## 이전(12/17) 완료된 작업
 
 ### 1. 복수 문제 유형 선택 기능
 - **변경**: 드롭다운 → 칩/태그 UI로 복수 선택 가능
@@ -168,8 +193,8 @@ $$;
 
 1. 이 파일(HANDOFF.md) 읽기
 2. `npm run dev`로 서버 실행
-3. GitHub 로그인 테스트
-4. 무관한 문장 문제 생성 테스트 (품질 확인)
+3. **Supabase Google Provider 활성화** (위 TODO 참고)
+4. Google 로그인 테스트
 5. 남은 작업 중 하나 선택하여 진행
 
 ---

@@ -8,6 +8,7 @@ import { openai, DEFAULT_MODEL } from '@/lib/openai';
 import { createGrammarPrompt } from '@/lib/prompts';
 import { createPrompt } from '@/lib/all-prompts';
 import { GeneratedQuestion, GenerateQuestionRequest } from '@/types';
+import { checkRateLimit, getClientIP, API_RATE_LIMITS } from '@/lib/rate-limit';
 
 // Types that require all 5 markers (①②③④⑤)
 const MARKER_REQUIRED_TYPES = ['GRAMMAR_INCORRECT', 'SELECT_INCORRECT_WORD'];
@@ -110,8 +111,9 @@ function buildModifiedPassageFromMarkers(passage: string, markers: GrammarMarker
       const after = modifiedPassage.substring(foundPos);
       const replaceRegex = new RegExp(escapeRegExp(foundWord), 'i');
       // Add underline for SELECT_INCORRECT_WORD type
+      // 숫자가 밑줄 앞에 와야 함: ①<u>단어</u>
       const replacement = useUnderline
-        ? `<u>${marker.displayWord}</u>${symbol}`
+        ? `${symbol}<u>${marker.displayWord}</u>`
         : `${marker.displayWord}${symbol}`;
       modifiedPassage = before + after.replace(replaceRegex, replacement);
     } else {
@@ -149,6 +151,26 @@ function escapeRegExp(string: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate Limiting 체크
+    const clientIP = getClientIP(request);
+    const rateLimitResult = checkRateLimit(
+      `generate:${clientIP}`,
+      API_RATE_LIMITS.generateQuestion
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: rateLimitResult.error },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          },
+        }
+      );
+    }
+
     // Parse request body
     const body: GenerateQuestionRequest = await request.json();
     const { passage, questionType } = body;

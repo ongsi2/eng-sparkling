@@ -10,6 +10,8 @@ import { saveQuestionToArchive } from '@/lib/archive';
 import CoinDisplay, { CoinCost, triggerCoinUpdate } from '@/app/components/CoinDisplay';
 import AuthButton from '@/app/components/AuthButton';
 import { useAuth } from '@/app/components/AuthProvider';
+import { ArticleSkeleton, QuestionSkeleton, ProgressBar } from '@/app/components/Skeleton';
+import { PDFExportButton } from '@/app/components/PDFExportButton';
 
 type QuestionType =
   | 'GRAMMAR_INCORRECT'
@@ -49,28 +51,35 @@ interface Question {
   sentenceToInsert?: string;
 }
 
-// Sparkling Logo Component
+// Sparkling Logo Component - Premium Design
 const SparklingLogo = () => (
-  <svg viewBox="0 0 32 32" className="w-8 h-8">
-    <defs>
-      <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#06b6d4' }} />
-        <stop offset="50%" style={{ stopColor: '#22d3ee' }} />
-        <stop offset="100%" style={{ stopColor: '#10b981' }} />
-      </linearGradient>
-      <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#0f172a' }} />
-        <stop offset="100%" style={{ stopColor: '#1e293b' }} />
-      </linearGradient>
-    </defs>
-    <circle cx="16" cy="16" r="15" fill="url(#bgGrad)" />
-    <g transform="translate(6, 7)">
-      <path d="M2 0 L12 0 L12 2.5 L5 2.5 L5 7 L10 7 L10 9.5 L5 9.5 L5 15.5 L12 15.5 L12 18 L2 18 Z" fill="#f8fafc" />
-      <path d="M15 4 L16 6 L18 7 L16 8 L15 10 L14 8 L12 7 L14 6 Z" fill="url(#sparkGrad)" />
-      <circle cx="18" cy="3" r="1" fill="#22d3ee" opacity="0.9" />
-      <circle cx="13" cy="12" r="0.8" fill="#10b981" opacity="0.8" />
-    </g>
-  </svg>
+  <div className="relative group">
+    <svg viewBox="0 0 40 40" className="w-10 h-10">
+      <defs>
+        <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#06b6d4" />
+          <stop offset="50%" stopColor="#22d3ee" />
+          <stop offset="100%" stopColor="#10b981" />
+        </linearGradient>
+        <filter id="glow2">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <circle cx="20" cy="20" r="18" fill="none" stroke="url(#logoGrad2)" strokeWidth="2.5" className="group-hover:animate-pulse" />
+      <circle cx="20" cy="20" r="15" fill="url(#logoGrad2)" fillOpacity="0.08" />
+      <g transform="translate(12, 11)">
+        <path d="M0 0 L14 0 L14 3 L4 3 L4 7.5 L12 7.5 L12 10.5 L4 10.5 L4 15 L14 15 L14 18 L0 18 Z" fill="url(#logoGrad2)" />
+      </g>
+      <g filter="url(#glow2)">
+        <circle cx="32" cy="10" r="2" fill="#22d3ee" className="animate-sparkle" />
+        <circle cx="8" cy="32" r="1.5" fill="#10b981" className="animate-sparkle delay-300" />
+      </g>
+    </svg>
+  </div>
 );
 
 export default function WorkflowPage() {
@@ -86,12 +95,19 @@ export default function WorkflowPage() {
 
   const [step, setStep] = useState<1 | 2>(1);
 
-  // Step 1: Article Generation
+  // Step 1: Article Source Selection
+  const [articleSource, setArticleSource] = useState<'generate' | 'direct'>('generate');
+
+  // Generate mode
   const [keywords, setKeywords] = useState('');
   const [difficulty, setDifficulty] = useState<'중학생' | '고1' | '고2' | '고3'>('고3');
   const [wordCount, setWordCount] = useState(300);
   const [generatedArticle, setGeneratedArticle] = useState<ArticleResponse | null>(null);
   const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
+
+  // Direct input mode
+  const [directInput, setDirectInput] = useState('');
+  const [directTitle, setDirectTitle] = useState('');
 
   // Step 2: Question Generation (Multi-select)
   const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<QuestionType[]>([]);
@@ -199,9 +215,10 @@ export default function WorkflowPage() {
 
     const results: {type: QuestionType, question: Question}[] = [];
     let successCount = 0;
+    let completedCount = 0;
 
-    // Generate questions in parallel
-    const promises = selectedQuestionTypes.map(async (type) => {
+    // Generate questions sequentially for proper progress tracking
+    for (const type of selectedQuestionTypes) {
       try {
         const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
         const response = await fetch(`${basePath}/api/generate`, {
@@ -220,23 +237,17 @@ export default function WorkflowPage() {
           throw new Error(errorMsg);
         }
 
-        return { type, question: data as Question, success: true };
-      } catch (error: any) {
-        console.error(`Question generation error for ${type}:`, error);
-        return { type, question: null, success: false, error: error.message };
-      }
-    });
-
-    const allResults = await Promise.all(promises);
-
-    for (const result of allResults) {
-      if (result.success && result.question) {
-        results.push({ type: result.type, question: result.question });
+        results.push({ type, question: data as Question });
         successCount++;
         // Deduct coin for each successful generation (DB)
         await deductCoinsFromDB(user.id, COIN_COSTS.GENERATE_QUESTION);
+      } catch (error: any) {
+        console.error(`Question generation error for ${type}:`, error);
       }
-      setGenerationProgress(prev => prev ? { ...prev, current: prev.current + 1 } : null);
+
+      // Update progress after each question
+      completedCount++;
+      setGenerationProgress({ current: completedCount, total: selectedQuestionTypes.length });
     }
 
     triggerCoinUpdate();
@@ -261,9 +272,53 @@ export default function WorkflowPage() {
     setGeneratedQuestions([]);
   };
 
+  const handleDirectInput = () => {
+    const trimmedInput = directInput.trim();
+
+    if (!trimmedInput) {
+      toast.error('지문을 입력해주세요');
+      return;
+    }
+
+    if (trimmedInput.length < 100) {
+      toast.error('지문은 최소 100자 이상 입력해주세요');
+      return;
+    }
+
+    if (!user) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+
+    // 영어 단어 수 계산
+    const englishWords = trimmedInput.match(/[a-zA-Z]+/g) || [];
+    const estimatedWordCount = englishWords.length;
+
+    if (estimatedWordCount < 30) {
+      toast.error('영어 지문을 입력해주세요 (최소 30단어 이상)');
+      return;
+    }
+
+    // 직접 입력한 아티클은 코인 차감 없음
+    const articleData: ArticleResponse = {
+      title: directTitle.trim() || 'Custom Article',
+      article: trimmedInput,
+      wordCount: estimatedWordCount,
+      difficulty: '고3',
+      keywords: [],
+    };
+
+    setGeneratedArticle(articleData);
+    setStep(2);
+    toast.success('지문이 등록되었습니다!');
+  };
+
   const handleReset = () => {
     setStep(1);
+    setArticleSource('generate');
     setKeywords('');
+    setDirectInput('');
+    setDirectTitle('');
     setGeneratedArticle(null);
     setGeneratedQuestions([]);
     setSelectedQuestionTypes([]);
@@ -440,90 +495,204 @@ export default function WorkflowPage() {
           <div className="card-elevated p-8 animate-fade-in-up">
             <h2 className="font-display text-2xl font-semibold text-[var(--color-ink)] mb-8 flex items-center gap-3">
               <span className="w-8 h-8 rounded-full bg-[var(--color-spark)]/10 text-[var(--color-spark)] flex items-center justify-center text-sm font-bold">1</span>
-              아티클 생성
+              아티클 준비
             </h2>
 
-            <div className="space-y-8">
-              {/* Keywords Input */}
-              <div>
-                <label className="block text-sm font-medium text-[var(--color-ink)] mb-2">
-                  키워드 입력 <span className="text-[var(--color-text-muted)]">(쉼표로 구분)</span>
-                </label>
-                <input
-                  type="text"
-                  value={keywords}
-                  onChange={(e) => setKeywords(e.target.value)}
-                  placeholder="예: artificial intelligence, healthcare, diagnosis"
-                  className="w-full px-4 py-3 bg-[var(--color-cream)] border border-[var(--color-spark)]/20 rounded-xl focus:ring-2 focus:ring-[var(--color-spark)]/30 focus:border-[var(--color-spark)] transition-all outline-none"
-                />
-                <p className="text-sm text-[var(--color-text-muted)] mt-2">
-                  여러 키워드를 입력하면 해당 키워드를 포함한 영어 지문이 생성됩니다
-                </p>
-              </div>
-
-              {/* Difficulty Selection */}
-              <div>
-                <label className="block text-sm font-medium text-[var(--color-ink)] mb-3">
-                  난이도 선택
-                </label>
-                <div className="grid grid-cols-4 gap-3">
-                  {(['중학생', '고1', '고2', '고3'] as const).map((level) => (
-                    <button
-                      key={level}
-                      onClick={() => setDifficulty(level)}
-                      className={`py-3 px-4 rounded-xl font-medium transition-all cursor-pointer ${
-                        difficulty === level
-                          ? 'bg-gradient-to-r from-[var(--color-spark)] to-[var(--color-spark-light)] text-white shadow-md'
-                          : 'bg-[var(--color-cream)] text-[var(--color-text)] hover:bg-[var(--color-cream-dark)] border border-[var(--color-spark)]/10'
-                      }`}
-                    >
-                      {level}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Word Count Selection */}
-              <div>
-                <label className="block text-sm font-medium text-[var(--color-ink)] mb-3">
-                  단어 수: <span className="text-[var(--color-spark)] font-bold">{wordCount}</span>단어
-                </label>
-                <input
-                  type="range"
-                  min="100"
-                  max="800"
-                  step="50"
-                  value={wordCount}
-                  onChange={(e) => setWordCount(Number(e.target.value))}
-                  className="w-full h-2 bg-[var(--color-cream-dark)] rounded-full appearance-none cursor-pointer accent-[var(--color-spark)]"
-                />
-                <div className="flex justify-between text-xs text-[var(--color-text-muted)] mt-2">
-                  <span>100단어</span>
-                  <span>800단어</span>
-                </div>
-              </div>
-
-              {/* Generate Button */}
+            {/* Source Selection Tabs */}
+            <div className="flex gap-2 mb-8 p-1 bg-[var(--color-cream-dark)]/50 rounded-xl">
               <button
-                onClick={handleGenerateArticle}
-                disabled={isGeneratingArticle || !keywords.trim()}
-                className="w-full btn-spark py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                onClick={() => setArticleSource('generate')}
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                  articleSource === 'generate'
+                    ? 'bg-white text-[var(--color-ink)] shadow-sm'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-ink)]'
+                }`}
               >
-                {isGeneratingArticle ? (
-                  <span className="flex items-center justify-center gap-3">
-                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    아티클 생성 중...
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center gap-3">
-                    아티클 생성하기
-                    <CoinCost amount={COIN_COSTS.GENERATE_ARTICLE} />
-                  </span>
-                )}
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                AI로 생성
               </button>
+              <button
+                onClick={() => setArticleSource('direct')}
+                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                  articleSource === 'direct'
+                    ? 'bg-white text-[var(--color-ink)] shadow-sm'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-ink)]'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                직접 입력
+              </button>
+            </div>
+
+            <div className="space-y-8">
+              {/* AI Generate Mode */}
+              {articleSource === 'generate' && (
+                <>
+                  {/* Keywords Input */}
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-ink)] mb-2">
+                      키워드 입력 <span className="text-[var(--color-text-muted)]">(쉼표로 구분)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={keywords}
+                      onChange={(e) => setKeywords(e.target.value)}
+                      placeholder="예: artificial intelligence, healthcare, diagnosis"
+                      className="w-full px-4 py-3 bg-[var(--color-cream)] border border-[var(--color-spark)]/20 rounded-xl focus:ring-2 focus:ring-[var(--color-spark)]/30 focus:border-[var(--color-spark)] transition-all outline-none"
+                    />
+                    <p className="text-sm text-[var(--color-text-muted)] mt-2">
+                      여러 키워드를 입력하면 해당 키워드를 포함한 영어 지문이 생성됩니다
+                    </p>
+                  </div>
+
+                  {/* Difficulty Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-ink)] mb-3">
+                      난이도 선택
+                    </label>
+                    <div className="grid grid-cols-4 gap-3">
+                      {(['중학생', '고1', '고2', '고3'] as const).map((level) => (
+                        <button
+                          key={level}
+                          onClick={() => setDifficulty(level)}
+                          className={`py-3 px-4 rounded-xl font-medium transition-all cursor-pointer ${
+                            difficulty === level
+                              ? 'bg-gradient-to-r from-[var(--color-spark)] to-[var(--color-spark-light)] text-white shadow-md'
+                              : 'bg-[var(--color-cream)] text-[var(--color-text)] hover:bg-[var(--color-cream-dark)] border border-[var(--color-spark)]/10'
+                          }`}
+                        >
+                          {level}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Word Count Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-ink)] mb-3">
+                      단어 수: <span className="text-[var(--color-spark)] font-bold">{wordCount}</span>단어
+                    </label>
+                    <input
+                      type="range"
+                      min="100"
+                      max="800"
+                      step="50"
+                      value={wordCount}
+                      onChange={(e) => setWordCount(Number(e.target.value))}
+                      className="w-full h-2 bg-[var(--color-cream-dark)] rounded-full appearance-none cursor-pointer accent-[var(--color-spark)]"
+                    />
+                    <div className="flex justify-between text-xs text-[var(--color-text-muted)] mt-2">
+                      <span>100단어</span>
+                      <span>800단어</span>
+                    </div>
+                  </div>
+
+                  {/* Generate Button */}
+                  <button
+                    onClick={handleGenerateArticle}
+                    disabled={isGeneratingArticle || !keywords.trim()}
+                    className="w-full btn-spark py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isGeneratingArticle ? (
+                      <span className="flex items-center justify-center gap-3">
+                        <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        아티클 생성 중...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-3">
+                        아티클 생성하기
+                        <CoinCost amount={COIN_COSTS.GENERATE_ARTICLE} />
+                      </span>
+                    )}
+                  </button>
+                </>
+              )}
+
+              {/* Direct Input Mode */}
+              {articleSource === 'direct' && (
+                <>
+                  {/* Title Input (Optional) */}
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-ink)] mb-2">
+                      제목 <span className="text-[var(--color-text-muted)]">(선택)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={directTitle}
+                      onChange={(e) => setDirectTitle(e.target.value)}
+                      placeholder="예: The Future of Artificial Intelligence"
+                      className="w-full px-4 py-3 bg-[var(--color-cream)] border border-[var(--color-spark)]/20 rounded-xl focus:ring-2 focus:ring-[var(--color-spark)]/30 focus:border-[var(--color-spark)] transition-all outline-none"
+                    />
+                  </div>
+
+                  {/* Article Content Input */}
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--color-ink)] mb-2">
+                      영어 지문 입력 <span className="text-[var(--color-error)]">*</span>
+                    </label>
+                    <textarea
+                      value={directInput}
+                      onChange={(e) => setDirectInput(e.target.value)}
+                      placeholder="영어 지문을 여기에 붙여넣으세요...&#10;&#10;The rapid advancement of artificial intelligence has transformed various industries..."
+                      rows={10}
+                      className="w-full px-4 py-3 bg-[var(--color-cream)] border border-[var(--color-spark)]/20 rounded-xl focus:ring-2 focus:ring-[var(--color-spark)]/30 focus:border-[var(--color-spark)] transition-all outline-none resize-none"
+                    />
+                    <div className="flex justify-between items-center mt-2">
+                      <p className="text-sm text-[var(--color-text-muted)]">
+                        최소 100자 이상의 영어 지문을 입력해주세요
+                      </p>
+                      <span className={`text-sm font-medium ${
+                        directInput.length >= 100
+                          ? 'text-[var(--color-mint)]'
+                          : 'text-[var(--color-text-muted)]'
+                      }`}>
+                        {directInput.length}자
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-[var(--color-mint)]/10 border border-[var(--color-mint)]/30 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-[var(--color-mint)] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="text-sm text-[var(--color-text)]">
+                        <p className="font-medium text-[var(--color-mint)] mb-1">직접 입력은 무료!</p>
+                        <p className="text-[var(--color-text-muted)]">수능, 모의고사, 교재 등의 영어 지문을 직접 입력하여 문제를 생성할 수 있습니다.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    onClick={handleDirectInput}
+                    disabled={directInput.trim().length < 100}
+                    className="w-full btn-spark py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    <span className="flex items-center justify-center gap-3">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      지문 등록하기
+                      <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">무료</span>
+                    </span>
+                  </button>
+                </>
+              )}
+
+              {/* Article Generation Skeleton */}
+              {isGeneratingArticle && (
+                <div className="mt-8">
+                  <ArticleSkeleton />
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -648,6 +817,22 @@ export default function WorkflowPage() {
                     </span>
                   )}
                 </button>
+
+                {/* Question Generation Progress & Skeleton */}
+                {isGeneratingQuestion && generationProgress && (
+                  <div className="mt-6 space-y-4">
+                    <ProgressBar
+                      current={generationProgress.current}
+                      total={generationProgress.total}
+                      label="문제 생성 진행률"
+                    />
+                    <div className="grid gap-4">
+                      {Array.from({ length: Math.min(3, generationProgress.total - generationProgress.current) }).map((_, i) => (
+                        <QuestionSkeleton key={i} />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -656,14 +841,28 @@ export default function WorkflowPage() {
               <div className="space-y-6 animate-fade-in-up">
                 {/* Header with actions */}
                 <div className="card-elevated p-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
                     <h2 className="font-display text-xl font-semibold text-[var(--color-ink)]">
                       생성된 문제 ({generatedQuestions.length}개)
                     </h2>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <span className="text-sm text-[var(--color-text-muted)]">
                         {savedIndexes.size}/{generatedQuestions.length} 저장됨
                       </span>
+                      <PDFExportButton
+                        variant="button"
+                        questions={generatedQuestions.map(({ type, question }) => ({
+                          type,
+                          typeName: QUESTION_TYPE_LABELS[type],
+                          questionText: question.question,
+                          passage: question.modifiedPassage.replace(/<[^>]*>/g, ''),
+                          choices: question.choices,
+                          answer: question.answer,
+                          explanation: question.explanation,
+                          difficulty: generatedArticle.difficulty,
+                        }))}
+                        title={`ENG-SPARKLING - ${generatedArticle.title}`}
+                      />
                       <button
                         onClick={handleSaveAllToArchive}
                         disabled={savedIndexes.size === generatedQuestions.length}

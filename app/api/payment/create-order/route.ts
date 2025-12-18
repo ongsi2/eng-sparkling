@@ -7,9 +7,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { getProductById, getTotalCoins } from '@/lib/coin-products';
+import { checkRateLimit, getClientIP, API_RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate Limiting 체크
+    const clientIP = getClientIP(request);
+    const rateLimitResult = checkRateLimit(
+      `payment:${clientIP}`,
+      API_RATE_LIMITS.payment
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: rateLimitResult.error },
+        { status: 429 }
+      );
+    }
+
     const { productId, userId } = await request.json();
 
     // Validate input

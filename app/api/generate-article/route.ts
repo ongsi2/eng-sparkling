@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createArticlePrompt, ArticleRequest, ArticleResponse } from '@/lib/article-prompts';
+import { checkRateLimit, getClientIP, API_RATE_LIMITS } from '@/lib/rate-limit';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -8,6 +9,26 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate Limiting 체크
+    const clientIP = getClientIP(request);
+    const rateLimitResult = checkRateLimit(
+      `generate-article:${clientIP}`,
+      API_RATE_LIMITS.generateArticle
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: rateLimitResult.error },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          },
+        }
+      );
+    }
+
     const body: ArticleRequest = await request.json();
     const { keywords, difficulty, wordCount } = body;
 

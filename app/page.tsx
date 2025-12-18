@@ -6,30 +6,53 @@ import { DEMO_PASSAGE, DEMO_QUESTIONS, QUESTION_TYPES, QuestionType } from '@/da
 import { useAuth } from '@/app/components/AuthProvider';
 import AuthButton from '@/app/components/AuthButton';
 import CoinDisplay from '@/app/components/CoinDisplay';
+import { PDFExportButton } from '@/app/components/PDFExportButton';
 
-// Sparkling Logo Component - Fresh Cyan/Mint
+// Sparkling Logo Component - Premium Modern Design
 const SparklingLogo = () => (
-  <svg viewBox="0 0 32 32" className="w-8 h-8">
-    <defs>
-      <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#06b6d4' }} />
-        <stop offset="50%" style={{ stopColor: '#22d3ee' }} />
-        <stop offset="100%" style={{ stopColor: '#10b981' }} />
-      </linearGradient>
-      <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style={{ stopColor: '#0f172a' }} />
-        <stop offset="100%" style={{ stopColor: '#1e293b' }} />
-      </linearGradient>
-    </defs>
-    <circle cx="16" cy="16" r="15" fill="url(#bgGrad)" />
-    <g transform="translate(6, 7)">
-      <path d="M2 0 L12 0 L12 2.5 L5 2.5 L5 7 L10 7 L10 9.5 L5 9.5 L5 15.5 L12 15.5 L12 18 L2 18 Z" fill="#f8fafc" />
-      <path d="M15 4 L16 6 L18 7 L16 8 L15 10 L14 8 L12 7 L14 6 Z" fill="url(#sparkGrad)" />
-      <circle cx="18" cy="3" r="1" fill="#22d3ee" opacity="0.9" />
-      <circle cx="13" cy="12" r="0.8" fill="#10b981" opacity="0.8" />
-      <circle cx="17" cy="11" r="0.6" fill="#67e8f9" opacity="0.7" />
-    </g>
-  </svg>
+  <div className="relative group">
+    <svg viewBox="0 0 40 40" className="w-10 h-10">
+      <defs>
+        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#06b6d4" />
+          <stop offset="50%" stopColor="#22d3ee" />
+          <stop offset="100%" stopColor="#10b981" />
+        </linearGradient>
+        <linearGradient id="shineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.3" />
+          <stop offset="50%" stopColor="#fff" stopOpacity="0" />
+          <stop offset="100%" stopColor="#fff" stopOpacity="0.1" />
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      {/* Main circle with gradient border */}
+      <circle cx="20" cy="20" r="18" fill="none" stroke="url(#logoGrad)" strokeWidth="2.5" className="group-hover:animate-pulse" />
+      {/* Inner glow effect */}
+      <circle cx="20" cy="20" r="15" fill="url(#logoGrad)" fillOpacity="0.08" />
+      {/* Stylized 'E' mark */}
+      <g transform="translate(12, 11)">
+        <path
+          d="M0 0 L14 0 L14 3 L4 3 L4 7.5 L12 7.5 L12 10.5 L4 10.5 L4 15 L14 15 L14 18 L0 18 Z"
+          fill="url(#logoGrad)"
+          className="drop-shadow-sm"
+        />
+      </g>
+      {/* Sparkle effects */}
+      <g filter="url(#glow)">
+        <circle cx="32" cy="10" r="2" fill="#22d3ee" className="animate-sparkle" />
+        <circle cx="8" cy="32" r="1.5" fill="#10b981" className="animate-sparkle delay-300" />
+        <path d="M34 22 L35.5 25 L38.5 26 L35.5 27 L34 30 L32.5 27 L29.5 26 L32.5 25 Z" fill="#67e8f9" className="animate-twinkle delay-200" />
+      </g>
+      {/* Shine overlay */}
+      <circle cx="20" cy="20" r="18" fill="url(#shineGrad)" />
+    </svg>
+  </div>
 );
 
 // Lightning Icon Component
@@ -314,12 +337,27 @@ export default function Home() {
                     {selectedTypeInfo.description}
                   </span>
                 </div>
-                <button
-                  onClick={handleCloseQuestion}
-                  className="p-2 rounded-full hover:bg-[var(--color-cream-dark)] transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-ink)] cursor-pointer"
-                >
-                  <CloseIcon className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <PDFExportButton
+                    variant="icon"
+                    question={{
+                      type: selectedType!,
+                      typeName: selectedTypeInfo.label,
+                      questionText: selectedQuestion.question,
+                      passage: selectedQuestion.modifiedPassage.replace(/<[^>]*>/g, ''),
+                      choices: selectedQuestion.choices,
+                      answer: selectedQuestion.answer,
+                      explanation: selectedQuestion.explanation,
+                      difficulty: '수능',
+                    }}
+                  />
+                  <button
+                    onClick={handleCloseQuestion}
+                    className="p-2 rounded-full hover:bg-[var(--color-cream-dark)] transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-ink)] cursor-pointer"
+                  >
+                    <CloseIcon className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* Question Content */}

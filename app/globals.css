@@ -245,6 +245,28 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* Animation utilities */
 .animate-fade-in {
   animation: fadeIn var(--transition-base) ease-out forwards;
@@ -291,6 +313,14 @@ h1, h2, h3, h4, h5, h6 {
   );
   background-size: 200% 100%;
   animation: shimmer 2.5s ease-in-out infinite;
+}
+
+.animate-slide-down {
+  animation: slide-down var(--transition-base) ease-out forwards;
+}
+
+.animate-slide-left {
+  animation: slide-left var(--transition-base) ease-out forwards;
 }
 
 /* Stagger delays */
@@ -585,11 +615,196 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
+  :root {
+    /* 모바일에서 터치 타겟 크기 증가 */
+    --touch-target-min: 44px;
+  }
+
   .passage-card {
-    padding: 1.5rem;
+    padding: 1.25rem;
+    border-radius: var(--radius-lg);
   }
 
   .question-card {
-    padding: 1.5rem;
+    padding: 1.25rem;
+    border-radius: var(--radius-lg);
+  }
+
+  /* 버튼 터치 영역 확대 */
+  .btn-spark,
+  .btn-ghost {
+    padding: 1rem 1.5rem;
+    min-height: var(--touch-target-min);
+  }
+
+  .type-pill {
+    padding: 0.75rem 1rem;
+    min-height: var(--touch-target-min);
+  }
+
+  .choice-item {
+    padding: 1rem;
+    min-height: var(--touch-target-min);
+  }
+
+  /* 텍스트 크기 조정 */
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+  }
+
+  /* 스크롤 개선 */
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 고정 헤더/네비게이션 공간 확보 */
+  .mobile-safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .mobile-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* 더 작은 모바일 화면 */
+@media (max-width: 480px) {
+  .passage-card,
+  .question-card {
+    padding: 1rem;
+    border-radius: var(--radius-md);
+  }
+
+  .btn-spark {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* 그리드 레이아웃 조정 */
+  .type-pill {
+    font-size: 0.8rem;
+    padding: 0.625rem 0.875rem;
+  }
+}
+
+/* 터치 디바이스에서 hover 효과 제거 */
+@media (hover: none) and (pointer: coarse) {
+  .btn-spark:hover,
+  .btn-ghost:hover,
+  .type-pill:hover,
+  .choice-item:hover,
+  .card:hover,
+  .feature-card:hover {
+    transform: none;
+  }
+
+  .btn-spark:active {
+    transform: scale(0.98);
+    transition: transform 0.1s;
+  }
+
+  .type-pill:active,
+  .choice-item:active {
+    transform: scale(0.98);
+    background: rgba(6, 182, 212, 0.1);
+  }
+}
+
+/* 세로 모드 최적화 */
+@media (max-width: 768px) and (orientation: portrait) {
+  .flex-col-mobile {
+    flex-direction: column;
+  }
+
+  .w-full-mobile {
+    width: 100%;
+  }
+
+  .gap-mobile-sm {
+    gap: 0.5rem;
+  }
+
+  .gap-mobile-md {
+    gap: 1rem;
+  }
+}
+
+/* 가로 모드 최적화 */
+@media (max-height: 500px) and (orientation: landscape) {
+  .passage-card,
+  .question-card {
+    padding: 1rem;
+  }
+
+  /* 가로 모드에서 여백 줄이기 */
+  .py-mobile-landscape {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+/* 입력 필드 모바일 최적화 */
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important; /* iOS 확대 방지 */
+    min-height: var(--touch-target-min);
+  }
+
+  /* 스와이프 힌트 */
+  .swipe-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+  }
+
+  .swipe-hint svg {
+    animation: swipe-hint 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes swipe-hint {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+}
+
+/* 하단 고정 버튼 스타일 */
+.fixed-bottom-button {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, var(--color-cream) 80%, transparent);
+  z-index: 40;
+}
+
+/* 풀스크린 모달 (모바일) */
+@media (max-width: 768px) {
+  .modal-fullscreen-mobile {
+    position: fixed;
+    inset: 0;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
   }
 }
