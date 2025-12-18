@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import CoinDisplay from '@/app/components/CoinDisplay';
 import AuthButton from '@/app/components/AuthButton';
 import { useAuth } from '@/app/components/AuthProvider';
@@ -132,16 +133,16 @@ export default function ArchivePage() {
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-[var(--color-cream)]/90 border-b border-[var(--color-spark)]/10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <SparklingLogo />
             <span className="text-xl font-semibold text-[var(--color-ink)] tracking-tight">
               ENG-SPARKLING
             </span>
-          </a>
+          </Link>
           <div className="flex items-center gap-4">
-            <a href="/workflow" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
+            <Link href="/workflow" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
               ← 문제 생성
-            </a>
+            </Link>
             <div className="h-6 w-px bg-[var(--color-spark)]/20" />
             <CoinDisplay showLabel showChargeButton />
             <AuthButton />
@@ -167,7 +168,7 @@ export default function ArchivePage() {
             </svg>
             <h3 className="text-xl font-semibold text-[var(--color-ink)] mb-2">저장된 문제가 없습니다</h3>
             <p className="text-[var(--color-text-muted)] mb-6">문제를 생성하고 저장하면 여기에 표시됩니다.</p>
-            <a
+            <Link
               href="/workflow"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[var(--color-spark)] to-[var(--color-spark-light)] text-white rounded-full font-semibold hover:shadow-lg transition-all"
             >
@@ -175,7 +176,7 @@ export default function ArchivePage() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
-            </a>
+            </Link>
           </div>
         ) : (
           <div className="grid md:grid-cols-3 gap-6">

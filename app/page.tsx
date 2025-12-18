@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { DEMO_PASSAGE, DEMO_QUESTIONS, QUESTION_TYPES, QuestionType } from '@/data/demo-questions';
 import { useAuth } from '@/app/components/AuthProvider';
 import AuthButton from '@/app/components/AuthButton';
@@ -115,30 +116,30 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-[var(--color-cream)]/90 border-b border-[var(--color-spark)]/10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3 group">
+          <Link href="/" className="flex items-center gap-3 group">
             <SparklingLogo />
             <span className="text-xl font-semibold text-[var(--color-ink)] tracking-tight">
               ENG-SPARKLING
             </span>
-          </a>
+          </Link>
           {loading ? (
             <div className="w-24 h-8 bg-[var(--color-cream-dark)] rounded-full animate-pulse" />
           ) : user ? (
             <div className="flex items-center gap-4">
-              <a href="/workflow" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
+              <Link href="/workflow" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
                 문제 생성
-              </a>
-              <a href="/archive" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
+              </Link>
+              <Link href="/archive" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
                 저장함
-              </a>
+              </Link>
               <div className="h-6 w-px bg-[var(--color-spark)]/20" />
               <CoinDisplay showLabel showChargeButton />
               <AuthButton />
             </div>
           ) : (
-            <a href="/login" className="btn-ghost text-sm">
+            <Link href="/login" className="btn-ghost text-sm">
               로그인 / 회원가입
-            </a>
+            </Link>
           )}
         </div>
       </header>
@@ -171,20 +172,20 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up delay-300">
             {user ? (
-              <a href="/workflow" className="btn-spark">
+              <Link href="/workflow" className="btn-spark">
                 문제 생성하기
                 <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
-              </a>
+              </Link>
             ) : (
               <>
-                <a href="/login" className="btn-spark">
+                <Link href="/login" className="btn-spark">
                   무료로 시작하기
                   <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
-                </a>
+                </Link>
                 <span className="text-sm text-[var(--color-text-light)]">
                   첫 달 무료 체험
                 </span>
@@ -459,9 +460,9 @@ export default function Home() {
                 AI가 만드는 수능 스타일 영어 문제로<br />
                 효율적인 학습을 시작하세요.
               </p>
-              <a href="/workflow" className="btn-spark text-lg px-10 py-4">
+              <Link href="/workflow" className="btn-spark text-lg px-10 py-4">
                 문제 생성하러 가기
-              </a>
+              </Link>
             </>
           ) : (
             <>
@@ -469,9 +470,9 @@ export default function Home() {
                 회원가입시 10개의 문제를 생성할 수 있는 코인 지급.<br />
                 가입하시고 무료로 체험해보세요.
               </p>
-              <a href="/login" className="btn-spark text-lg px-10 py-4">
+              <Link href="/login" className="btn-spark text-lg px-10 py-4">
                 무료 체험 시작하기
-              </a>
+              </Link>
             </>
           )}
         </div>

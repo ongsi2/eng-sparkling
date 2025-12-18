@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
 import { ArticleResponse } from '@/lib/article-prompts';
 import { deductCoinsFromDB, hasEnoughCoinsInDB, COIN_COSTS } from '@/lib/coins';
@@ -358,24 +359,24 @@ export default function WorkflowPage() {
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-[var(--color-cream)]/90 border-b border-[var(--color-spark)]/10">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <SparklingLogo />
             <span className="text-xl font-semibold text-[var(--color-ink)] tracking-tight">
               ENG-SPARKLING
             </span>
-          </a>
+          </Link>
           <div className="flex items-center gap-6">
             {/* 네비게이션 */}
             <nav className="flex items-center gap-4">
-              <a href="/archive" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors flex items-center gap-1">
+              <Link href="/archive" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors flex items-center gap-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                 </svg>
                 저장함
-              </a>
-              <a href="/" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
+              </Link>
+              <Link href="/" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
                 홈
-              </a>
+              </Link>
             </nav>
 
             {/* 구분선 */}

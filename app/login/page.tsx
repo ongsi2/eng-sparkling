@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/app/components/AuthProvider';
 
 // Sparkling Logo Component
@@ -51,12 +52,12 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[var(--color-cream)] flex flex-col">
       {/* Header */}
       <header className="p-6">
-        <a href="/" className="inline-flex items-center gap-2 text-[var(--color-text-muted)] hover:text-[var(--color-ink)] transition-colors">
+        <Link href="/" className="inline-flex items-center gap-2 text-[var(--color-text-muted)] hover:text-[var(--color-ink)] transition-colors">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           홈으로
-        </a>
+        </Link>
       </header>
 
       {/* Main Content */}
@@ -95,12 +96,12 @@ export default function LoginPage() {
             </div>
 
             {/* Demo Link */}
-            <a
+            <Link
               href="/"
               className="block w-full px-6 py-3 border border-[var(--color-spark)]/20 text-[var(--color-text)] rounded-xl font-medium hover:bg-[var(--color-cream-dark)] transition-colors"
             >
               로그인 없이 데모 체험
-            </a>
+            </Link>
           </div>
 
           {/* Footer Text */}
