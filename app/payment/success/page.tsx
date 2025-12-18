@@ -33,7 +33,8 @@ function PaymentSuccessContent() {
       }
 
       try {
-        const response = await fetch('/api/payment/confirm', {
+        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+        const response = await fetch(`${basePath}/api/payment/confirm`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

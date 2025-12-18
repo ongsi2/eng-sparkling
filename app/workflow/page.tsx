@@ -141,7 +141,8 @@ export default function WorkflowPage() {
     try {
       const keywordArray = keywords.split(',').map(k => k.trim()).filter(k => k);
 
-      const response = await fetch('/api/generate-article', {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+      const response = await fetch(`${basePath}/api/generate-article`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -202,7 +203,8 @@ export default function WorkflowPage() {
     // Generate questions in parallel
     const promises = selectedQuestionTypes.map(async (type) => {
       try {
-        const response = await fetch('/api/generate', {
+        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+        const response = await fetch(`${basePath}/api/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

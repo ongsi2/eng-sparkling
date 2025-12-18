@@ -31,7 +31,8 @@ export default function PaymentPage() {
 
     try {
       // 1. Create order in DB first
-      const orderResponse = await fetch('/api/payment/create-order', {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+      const orderResponse = await fetch(`${basePath}/api/payment/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
