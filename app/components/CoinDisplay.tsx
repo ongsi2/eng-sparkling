@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getCoins, CoinState } from '@/lib/coins';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { getCoinsFromDB } from '@/lib/coins';
+import { useAuth } from './AuthProvider';
 
 // Coin Icon SVG Component
 export const CoinIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
@@ -56,44 +58,79 @@ export const CoinIconSmall = ({ className = "w-4 h-4" }: { className?: string })
 interface CoinDisplayProps {
   className?: string;
   showLabel?: boolean;
+  showChargeButton?: boolean;
 }
 
-export default function CoinDisplay({ className = "", showLabel = false }: CoinDisplayProps) {
-  const [coinState, setCoinState] = useState<CoinState | null>(null);
+export default function CoinDisplay({ className = "", showLabel = false, showChargeButton = false }: CoinDisplayProps) {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [balance, setBalance] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchCoins = useCallback(async () => {
+    if (!user) {
+      setBalance(null);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const coins = await getCoinsFromDB(user.id);
+      setBalance(coins);
+    } catch (error) {
+      console.error('Failed to fetch coins:', error);
+      setBalance(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    setCoinState(getCoins());
+    fetchCoins();
 
     // Listen for coin updates
-    const handleStorageChange = () => {
-      setCoinState(getCoins());
+    const handleCoinUpdate = () => {
+      fetchCoins();
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('coinUpdate', handleStorageChange);
+    window.addEventListener('coinUpdate', handleCoinUpdate);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('coinUpdate', handleStorageChange);
+      window.removeEventListener('coinUpdate', handleCoinUpdate);
     };
-  }, []);
+  }, [fetchCoins]);
 
-  if (coinState === null) {
-    return null; // SSR placeholder
+  if (!user || isLoading || balance === null) {
+    return (
+      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 ${className}`}>
+        <CoinIcon className="w-5 h-5" />
+        <span className="font-semibold text-sm text-amber-700">-</span>
+      </div>
+    );
   }
 
-  const isLow = coinState.balance <= 3;
+  const isLow = balance <= 3;
 
   return (
-    <div
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 ${className}`}
-    >
-      <CoinIcon className="w-5 h-5" />
-      <span className={`font-semibold text-sm ${isLow ? 'text-red-600' : 'text-amber-700'}`}>
-        {coinState.balance}
-      </span>
-      {showLabel && (
-        <span className="text-xs text-amber-600/70 ml-0.5">코인</span>
+    <div className={`flex items-center gap-2 ${className}`}>
+      <div
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50"
+      >
+        <CoinIcon className="w-5 h-5" />
+        <span className={`font-semibold text-sm ${isLow ? 'text-red-600' : 'text-amber-700'}`}>
+          {balance}
+        </span>
+        {showLabel && (
+          <span className="text-xs text-amber-600/70 ml-0.5">코인</span>
+        )}
+      </div>
+      {showChargeButton && (
+        <button
+          onClick={() => router.push('/payment')}
+          className="cursor-pointer px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full transition-colors"
+        >
+          충전
+        </button>
       )}
     </div>
   );

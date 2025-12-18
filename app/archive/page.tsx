@@ -1,8 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ArticleResponse } from '@/lib/article-prompts';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import CoinDisplay from '@/app/components/CoinDisplay';
+import AuthButton from '@/app/components/AuthButton';
+import { useAuth } from '@/app/components/AuthProvider';
+import { getArchivedQuestions, deleteArchivedQuestion, ArchivedQuestion } from '@/lib/archive';
 
 type QuestionType =
   | 'GRAMMAR_INCORRECT'
@@ -33,40 +36,6 @@ const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   SENTENCE_ORDER: '글의 순서형',
 };
 
-interface Question {
-  question: string;
-  modifiedPassage: string;
-  choices: string[];
-  answer: number;
-  explanation: string;
-  sentenceToInsert?: string;
-}
-
-interface ArchivedQuestion {
-  id: string;
-  questionType: QuestionType;
-  question: Question;
-  article: ArticleResponse;
-  createdAt: string;
-}
-
-const ARCHIVE_KEY = 'eng-sparkling-archive';
-
-function getArchive(): ArchivedQuestion[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const data = localStorage.getItem(ARCHIVE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-function deleteFromArchive(id: string): void {
-  const archive = getArchive();
-  const filtered = archive.filter(item => item.id !== id);
-  localStorage.setItem(ARCHIVE_KEY, JSON.stringify(filtered));
-}
 
 // Sparkling Logo Component
 const SparklingLogo = () => (
@@ -93,20 +62,48 @@ const SparklingLogo = () => (
 );
 
 export default function ArchivePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [archive, setArchive] = useState<ArchivedQuestion[]>([]);
   const [selectedItem, setSelectedItem] = useState<ArchivedQuestion | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 로그인 안 했으면 /login으로 리다이렉트
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  const fetchArchive = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const data = await getArchivedQuestions(user.id);
+      setArchive(data);
+    } catch (error) {
+      console.error('Failed to fetch archive:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    setArchive(getArchive());
-  }, []);
+    if (user) {
+      fetchArchive();
+    }
+  }, [user, fetchArchive]);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!user) return;
     if (confirm('이 문제를 삭제하시겠습니까?')) {
-      deleteFromArchive(id);
-      setArchive(getArchive());
-      if (selectedItem?.id === id) {
-        setSelectedItem(null);
+      const success = await deleteArchivedQuestion(user.id, id);
+      if (success) {
+        setArchive(prev => prev.filter(item => item.id !== id));
+        if (selectedItem?.id === id) {
+          setSelectedItem(null);
+        }
       }
     }
   };
@@ -121,6 +118,15 @@ export default function ArchivePage() {
     });
   };
 
+  // 로딩 중이거나 로그인 안 했으면 로딩 화면 표시
+  if (loading || !user || isLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-cream)] flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-[var(--color-spark)] border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--color-cream)]">
       {/* Header */}
@@ -133,10 +139,12 @@ export default function ArchivePage() {
             </span>
           </a>
           <div className="flex items-center gap-4">
-            <CoinDisplay showLabel />
             <a href="/workflow" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
               ← 문제 생성
             </a>
+            <div className="h-6 w-px bg-[var(--color-spark)]/20" />
+            <CoinDisplay showLabel showChargeButton />
+            <AuthButton />
           </div>
         </div>
       </header>
@@ -192,13 +200,13 @@ export default function ArchivePage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <span className="inline-block px-2 py-0.5 text-xs font-medium bg-[var(--color-mint)]/10 text-[var(--color-mint)] rounded-full mb-2">
-                        {QUESTION_TYPE_LABELS[item.questionType]}
+                        {QUESTION_TYPE_LABELS[item.question_type as QuestionType]}
                       </span>
                       <h4 className="font-medium text-[var(--color-ink)] text-sm truncate">
                         {item.article.title}
                       </h4>
                       <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                        {formatDate(item.createdAt)}
+                        {formatDate(item.created_at)}
                       </p>
                     </div>
                     <button
@@ -206,7 +214,7 @@ export default function ArchivePage() {
                         e.stopPropagation();
                         handleDelete(item.id);
                       }}
-                      className="p-1.5 text-[var(--color-text-light)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded-lg transition-colors"
+                      className="p-1.5 text-[var(--color-text-light)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded-lg transition-colors cursor-pointer"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -223,13 +231,13 @@ export default function ArchivePage() {
                 <div className="question-card animate-fade-in">
                   <div className="mb-6">
                     <span className="inline-block px-3 py-1 text-sm font-medium bg-[var(--color-mint)]/10 text-[var(--color-mint)] rounded-full mb-3">
-                      {QUESTION_TYPE_LABELS[selectedItem.questionType]}
+                      {QUESTION_TYPE_LABELS[selectedItem.question_type as QuestionType]}
                     </span>
                     <h3 className="text-lg font-semibold text-[var(--color-ink)]">
                       {selectedItem.question.question}
                     </h3>
                     <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                      {formatDate(selectedItem.createdAt)}
+                      {formatDate(selectedItem.created_at)}
                     </p>
                   </div>
 
@@ -272,7 +280,7 @@ export default function ArchivePage() {
                   {!showAnswer ? (
                     <button
                       onClick={() => setShowAnswer(true)}
-                      className="w-full py-3 bg-gradient-to-r from-[var(--color-spark)] to-[var(--color-mint)] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+                      className="w-full py-3 bg-gradient-to-r from-[var(--color-spark)] to-[var(--color-mint)] text-white rounded-xl font-semibold hover:shadow-lg transition-all cursor-pointer"
                     >
                       정답 확인하기
                     </button>

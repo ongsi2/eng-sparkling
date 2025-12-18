@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import { DEMO_PASSAGE, DEMO_QUESTIONS, QUESTION_TYPES, QuestionType } from '@/data/demo-questions';
+import { useAuth } from '@/app/components/AuthProvider';
+import AuthButton from '@/app/components/AuthButton';
+import CoinDisplay from '@/app/components/CoinDisplay';
 
 // Sparkling Logo Component - Fresh Cyan/Mint
 const SparklingLogo = () => (
@@ -82,6 +85,7 @@ const SparklingParticles = () => (
 );
 
 export default function Home() {
+  const { user, loading } = useAuth();
   const [selectedType, setSelectedType] = useState<QuestionType | null>(null);
   const [showQuestion, setShowQuestion] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -117,9 +121,25 @@ export default function Home() {
               ENG-SPARKLING
             </span>
           </a>
-          <a href="/workflow" className="btn-ghost text-sm">
-            로그인 / 회원가입
-          </a>
+          {loading ? (
+            <div className="w-24 h-8 bg-[var(--color-cream-dark)] rounded-full animate-pulse" />
+          ) : user ? (
+            <div className="flex items-center gap-4">
+              <a href="/workflow" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
+                문제 생성
+              </a>
+              <a href="/archive" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
+                저장함
+              </a>
+              <div className="h-6 w-px bg-[var(--color-spark)]/20" />
+              <CoinDisplay showLabel showChargeButton />
+              <AuthButton />
+            </div>
+          ) : (
+            <a href="/login" className="btn-ghost text-sm">
+              로그인 / 회원가입
+            </a>
+          )}
         </div>
       </header>
 
@@ -150,15 +170,26 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up delay-300">
-            <a href="/workflow" className="btn-spark">
-              무료로 시작하기
-              <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </a>
-            <span className="text-sm text-[var(--color-text-light)]">
-              첫 달 무료 체험
-            </span>
+            {user ? (
+              <a href="/workflow" className="btn-spark">
+                문제 생성하기
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </a>
+            ) : (
+              <>
+                <a href="/login" className="btn-spark">
+                  무료로 시작하기
+                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </a>
+                <span className="text-sm text-[var(--color-text-light)]">
+                  첫 달 무료 체험
+                </span>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -227,7 +258,7 @@ export default function Home() {
             <div className="text-center">
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="inline-flex items-center gap-2 text-[var(--color-spark-deep)] hover:text-[var(--color-spark)] text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 text-[var(--color-spark-deep)] hover:text-[var(--color-spark)] text-sm font-medium transition-colors cursor-pointer"
               >
                 {isExpanded ? '접기' : '더 많은 유형 보기'}
                 <ChevronIcon direction={isExpanded ? "up" : "down"} />
@@ -284,7 +315,7 @@ export default function Home() {
                 </div>
                 <button
                   onClick={handleCloseQuestion}
-                  className="p-2 rounded-full hover:bg-[var(--color-cream-dark)] transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-ink)]"
+                  className="p-2 rounded-full hover:bg-[var(--color-cream-dark)] transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-ink)] cursor-pointer"
                 >
                   <CloseIcon className="w-5 h-5" />
                 </button>
@@ -422,13 +453,27 @@ export default function Home() {
             <span className="text-[var(--color-cream)]">지금 바로</span><br />
             <span className="text-gradient-spark">시작하세요</span>
           </h2>
-          <p className="text-white/70 text-lg mb-10 max-w-xl mx-auto">
-            월 9,000원 구독으로 프리미엄 기능 이용.<br />
-            첫 달은 무료로 체험해보세요.
-          </p>
-          <a href="/workflow" className="btn-spark text-lg px-10 py-4">
-            무료 체험 시작하기
-          </a>
+          {user ? (
+            <>
+              <p className="text-white/70 text-lg mb-10 max-w-xl mx-auto">
+                AI가 만드는 수능 스타일 영어 문제로<br />
+                효율적인 학습을 시작하세요.
+              </p>
+              <a href="/workflow" className="btn-spark text-lg px-10 py-4">
+                문제 생성하러 가기
+              </a>
+            </>
+          ) : (
+            <>
+              <p className="text-white/70 text-lg mb-10 max-w-xl mx-auto">
+                회원가입시 10개의 문제를 생성할 수 있는 코인 지급.<br />
+                가입하시고 무료로 체험해보세요.
+              </p>
+              <a href="/login" className="btn-spark text-lg px-10 py-4">
+                무료 체험 시작하기
+              </a>
+            </>
+          )}
         </div>
       </section>
 

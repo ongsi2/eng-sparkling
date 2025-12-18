@@ -37,10 +37,10 @@ function validateMarkers(modifiedPassage: string, questionType: string): { valid
 }
 
 /**
- * Build modifiedPassage from markers array (for GRAMMAR_INCORRECT)
+ * Build modifiedPassage from markers array (for GRAMMAR_INCORRECT and SELECT_INCORRECT_WORD)
  * This approach is more reliable than asking AI to insert markers directly
  */
-function buildModifiedPassageFromMarkers(passage: string, markers: GrammarMarker[]): string {
+function buildModifiedPassageFromMarkers(passage: string, markers: GrammarMarker[], questionType: string): string {
   if (!markers || markers.length !== 5) {
     throw new Error('Markers array must have exactly 5 items');
   }
@@ -48,18 +48,19 @@ function buildModifiedPassageFromMarkers(passage: string, markers: GrammarMarker
   let modifiedPassage = passage;
   const markerSymbols = ['①', '②', '③', '④', '⑤'];
   const usedPositions: number[] = [];
+  const useUnderline = questionType === 'SELECT_INCORRECT_WORD';
 
   // Process markers in order, tracking used positions
   for (let i = 0; i < markers.length; i++) {
     const marker = markers[i];
     const symbol = markerSymbols[i];
 
-    // Try multiple search strategies
+    // For SELECT_INCORRECT_WORD: search for originalWord (word in original passage)
+    // For GRAMMAR_INCORRECT: search for originalWord or correctWord
     const searchWords = [
-      marker.isWrong ? marker.originalWord : null,
-      marker.isWrong ? marker.correctWord : null,
-      marker.displayWord,
-      // Also try without word boundaries for compound words
+      marker.originalWord,  // Primary: the word that exists in original passage
+      marker.isWrong ? marker.correctWord : null,  // Fallback for wrong markers
+      marker.displayWord,  // Last resort
     ].filter(Boolean) as string[];
 
     let foundPos = -1;
@@ -108,7 +109,11 @@ function buildModifiedPassageFromMarkers(passage: string, markers: GrammarMarker
       const before = modifiedPassage.substring(0, foundPos);
       const after = modifiedPassage.substring(foundPos);
       const replaceRegex = new RegExp(escapeRegExp(foundWord), 'i');
-      modifiedPassage = before + after.replace(replaceRegex, `${marker.displayWord}${symbol}`);
+      // Add underline for SELECT_INCORRECT_WORD type
+      const replacement = useUnderline
+        ? `<u>${marker.displayWord}</u>${symbol}`
+        : `${marker.displayWord}${symbol}`;
+      modifiedPassage = before + after.replace(replaceRegex, replacement);
     } else {
       // Fallback: find any suitable word near expected position
       console.warn(`Marker ${i + 1}: Could not find "${marker.displayWord}", using fallback`);
@@ -245,7 +250,7 @@ export async function POST(request: NextRequest) {
 
           // Build modifiedPassage from markers
           try {
-            parsed.modifiedPassage = buildModifiedPassageFromMarkers(passage, parsed.markers);
+            parsed.modifiedPassage = buildModifiedPassageFromMarkers(passage, parsed.markers, questionType);
           } catch (markerError: any) {
             console.warn(`Attempt ${attempt}: Failed to build passage: ${markerError.message}`);
             if (attempt < MAX_RETRIES) {

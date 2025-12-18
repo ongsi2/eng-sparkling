@@ -65,53 +65,61 @@ For passage: "Students learn every day. The teacher helps them understand."
 export const SELECT_INCORRECT_WORD_PROMPT = `
 You are creating a Korean SAT (수능) vocabulary-in-context question.
 
-TASK: Select EXACTLY 5 words from the passage for vocabulary marking. ONE must be contextually WRONG, FOUR must be CORRECT.
+TASK: Create a question where students identify ONE contextually WRONG word among 5 underlined words.
 
 **Passage:**
 {passage}
 
-**INSTRUCTIONS:**
-1. Find 5 meaningful words (adjectives, verbs, nouns, adverbs) to mark
-2. For 4 words: keep them CORRECT (they fit the context perfectly)
-3. For 1 word: change it to a WRONG word (looks plausible but doesn't fit context)
-4. Return the positions where markers should be inserted
+**WHAT YOU MUST DO:**
+1. Pick 5 meaningful words from the passage
+2. For 4 words: Keep them as-is (CORRECT words)
+3. For 1 word: REPLACE it with a WRONG word that looks plausible but doesn't fit the context
+4. The WRONG word will be shown in the passage, and students must identify it
 
-**RESPONSE FORMAT:**
-Return a JSON with markers array. Each marker object must have:
-- "position": the exact phrase BEFORE which to place the marker word
-- "displayWord": the word to show (either original word if correct, or replaced wrong word)
-- "isWrong": true if this is the wrong answer, false if correct
-- "correctWord": the correct word that should be there (only needed if isWrong is true)
-- "contextNote": brief explanation of why the word fits/doesn't fit
+**CRITICAL FIELD DEFINITIONS:**
+- "originalWord": The word that EXISTS in the original passage (what you're replacing)
+- "displayWord": The word to SHOW in the modified passage
+  - If isWrong=false: displayWord = originalWord (keep the same)
+  - If isWrong=true: displayWord = the NEW WRONG word (different from originalWord)
+- "correctWord": Only for isWrong=true, same as originalWord (the correct answer)
 
 **Example:**
-For passage: "The scientist conducted a careful experiment to prove his theory."
+Original passage: "The scientist conducted a careful experiment to prove his theory."
+
+For the WRONG marker (isWrong=true):
+- originalWord: "prove" (exists in original passage)
+- displayWord: "disprove" (WRONG word to show - this replaces "prove")
+- correctWord: "prove" (the correct word = originalWord)
+- Result: Passage shows "disprove" but correct answer is "prove"
 
 {
   "question": "다음 글의 밑줄 친 부분 중, 문맥상 낱말의 쓰임이 적절하지 않은 것은?",
   "markers": [
-    {"position": "conducted a", "displayWord": "careful", "isWrong": false, "contextNote": "careful fits - experiments need precision"},
-    {"position": "to prove", "displayWord": "experiment", "isWrong": false, "contextNote": "experiment fits - scientific method"},
-    {"position": "his theory", "displayWord": "prove", "isWrong": false, "contextNote": "prove fits - testing hypothesis"},
-    {"position": "experiment to", "displayWord": "disprove", "isWrong": true, "correctWord": "prove", "contextNote": "disprove doesn't fit - scientist wants to validate"},
-    {"position": "careful experiment", "displayWord": "theory", "isWrong": false, "contextNote": "theory fits - scientific hypothesis"}
+    {"originalWord": "careful", "displayWord": "careful", "isWrong": false, "contextNote": "careful fits"},
+    {"originalWord": "experiment", "displayWord": "experiment", "isWrong": false, "contextNote": "experiment fits"},
+    {"originalWord": "prove", "displayWord": "disprove", "isWrong": true, "correctWord": "prove", "contextNote": "disprove doesn't fit - scientist wants to validate, not invalidate"},
+    {"originalWord": "his", "displayWord": "his", "isWrong": false, "contextNote": "his fits"},
+    {"originalWord": "theory", "displayWord": "theory", "isWrong": false, "contextNote": "theory fits"}
   ],
-  "answer": 4,
-  "explanation": "④번 'disprove'는 문맥상 'prove'가 와야 합니다. 과학자는 자신의 이론을 증명하려는 것이지 반증하려는 것이 아닙니다."
+  "answer": 3,
+  "explanation": "정답은 ③번입니다. 'disprove(반증하다)'는 문맥상 'prove(증명하다)'가 와야 합니다. 과학자는 자신의 이론을 증명하려는 것이지 반증하려는 것이 아닙니다."
 }
 
-**CRITICAL RULES:**
-- markers array MUST have EXACTLY 5 items
-- EXACTLY 1 marker must have isWrong: true
-- answer must be the index+1 of the wrong marker (1-5)
-- The wrong word should be semantically plausible but contextually inappropriate
+**VALIDATION CHECKLIST (verify before responding):**
+✓ markers array has EXACTLY 5 items
+✓ EXACTLY 1 marker has isWrong: true
+✓ For isWrong=true: displayWord ≠ originalWord (they must be DIFFERENT)
+✓ For isWrong=true: correctWord = originalWord
+✓ For isWrong=false: displayWord = originalWord (they must be THE SAME)
+✓ answer = index+1 of the isWrong marker
+✓ explanation mentions displayWord as wrong and correctWord as the answer
 
 **Output (JSON only):**
 {
   "question": "다음 글의 밑줄 친 부분 중, 문맥상 낱말의 쓰임이 적절하지 않은 것은?",
-  "markers": [5 marker objects as described above],
-  "answer": [1-5, the wrong marker number],
-  "explanation": "정답은 [N]번입니다. '[틀린단어]'는 문맥상 '[올바른단어]'가 와야 합니다. [문맥 설명]"
+  "markers": [5 marker objects],
+  "answer": [1-5],
+  "explanation": "정답은 [N]번입니다. '[displayWord]'는 문맥상 '[correctWord]'가 와야 합니다. [이유]"
 }
 `;
 
@@ -130,6 +138,7 @@ Create a question asking what an underlined phrase/expression means in context.
 4. The correct answer should capture the contextual/figurative meaning of the underlined part
 5. All 5 choices must be SEMANTICALLY DISTINCT - no two choices can mean the same thing
 6. Korean translations must sound natural (avoid awkward phrases like "세력이 강해진다")
+7. **CRITICAL: Preserve the original paragraph structure in modifiedPassage. Keep all line breaks (\\n\\n) between paragraphs exactly as they appear in the original passage.**
 
 **Passage:**
 {passage}
@@ -179,6 +188,7 @@ Create a question asking for the MAIN TOPIC of the passage.
 2. Create 5 topic choices in Korean (4 plausible distractors, 1 correct)
 3. The correct answer must capture the main idea, not just a minor detail
 4. The explanation MUST be detailed with specific evidence from the passage
+5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage. Keep all line breaks (\\n\\n) between paragraphs exactly as they appear in the original passage.**
 
 **Passage:**
 {passage}
@@ -220,6 +230,7 @@ Create a question asking for the BEST TITLE of the passage.
 2. The correct title should capture the main message comprehensively
 3. Distractors should be plausible but incomplete or focus on minor details
 4. The explanation MUST be detailed with specific reasoning
+5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage. Keep all line breaks (\\n\\n) between paragraphs exactly as they appear in the original passage.**
 
 **Passage:**
 {passage}
@@ -260,6 +271,7 @@ Create a question asking which statement is TRUE according to the passage.
 1. Create 5 statements about the passage in Korean
 2. 4 should be FALSE or not mentioned in the passage
 3. 1 should be clearly TRUE based on specific evidence in the passage
+4. **CRITICAL: Preserve the original paragraph structure in modifiedPassage. Keep all line breaks (\\n\\n) between paragraphs exactly as they appear in the original passage.**
 
 **Passage:**
 {passage}
@@ -299,6 +311,7 @@ Create a question asking which statement is FALSE or NOT MENTIONED.
 1. Create 5 statements about the passage in Korean
 2. 4 should be TRUE based on evidence in the passage
 3. 1 should be FALSE (contradicts the passage) or NOT MENTIONED (not in passage)
+4. **CRITICAL: Preserve the original paragraph structure in modifiedPassage. Keep all line breaks (\\n\\n) between paragraphs exactly as they appear in the original passage.**
 
 **Passage:**
 {passage}
@@ -343,6 +356,7 @@ Create a question with 1 blank in the passage.
 2. Create 5 options that could fit grammatically
 3. Only 1 should fit contextually
 4. The explanation MUST be DETAILED and CONTEXTUAL
+5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage. Keep all line breaks (\\n\\n) between paragraphs exactly as they appear in the original passage.**
 
 **Passage:**
 {passage}

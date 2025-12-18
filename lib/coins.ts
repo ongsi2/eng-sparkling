@@ -1,10 +1,12 @@
 /**
  * Coin Management System
- * Uses localStorage for persistence (will migrate to DB later)
+ * Uses Supabase for persistence (DB-based)
  */
 
+import { supabase } from './supabase';
+
 const STORAGE_KEY = 'eng-sparkling-coins';
-const INITIAL_COINS = 100;
+const INITIAL_COINS = 10;  // 신규 가입자 무료 지급
 
 export interface CoinState {
   balance: number;
@@ -16,6 +18,94 @@ export const COIN_COSTS = {
   GENERATE_ARTICLE: 1,
   GENERATE_QUESTION: 1,
 } as const;
+
+// ============================================
+// Supabase DB Functions (Primary)
+// ============================================
+
+/**
+ * Get coin balance from DB for current user
+ */
+export async function getCoinsFromDB(userId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('coins')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching coins:', error);
+    return 0;
+  }
+
+  return data?.coins ?? INITIAL_COINS;
+}
+
+/**
+ * Deduct coins in DB
+ * Returns new balance if successful, null if insufficient
+ */
+export async function deductCoinsFromDB(userId: string, amount: number): Promise<number | null> {
+  // First get current balance
+  const currentBalance = await getCoinsFromDB(userId);
+
+  if (currentBalance < amount) {
+    return null; // Insufficient balance
+  }
+
+  const newBalance = currentBalance - amount;
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      coins: newBalance,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', userId);
+
+  if (error) {
+    console.error('Error deducting coins:', error);
+    return null;
+  }
+
+  return newBalance;
+}
+
+/**
+ * Add coins in DB
+ * Returns new balance
+ */
+export async function addCoinsToDb(userId: string, amount: number): Promise<number | null> {
+  const currentBalance = await getCoinsFromDB(userId);
+  const newBalance = currentBalance + amount;
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      coins: newBalance,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', userId);
+
+  if (error) {
+    console.error('Error adding coins:', error);
+    return null;
+  }
+
+  return newBalance;
+}
+
+/**
+ * Check if user has enough coins in DB
+ */
+export async function hasEnoughCoinsInDB(userId: string, amount: number): Promise<boolean> {
+  const balance = await getCoinsFromDB(userId);
+  return balance >= amount;
+}
+
+// ============================================
+// LocalStorage Functions (Fallback/Legacy)
+// ============================================
 
 /**
  * Initialize coins for new users

@@ -4,13 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
 import { ArticleResponse } from '@/lib/article-prompts';
-import { getCoins, deductCoins, hasEnoughCoins, COIN_COSTS, CoinState } from '@/lib/coins';
+import { deductCoinsFromDB, hasEnoughCoinsInDB, COIN_COSTS } from '@/lib/coins';
+import { saveQuestionToArchive } from '@/lib/archive';
 import CoinDisplay, { CoinCost, triggerCoinUpdate } from '@/app/components/CoinDisplay';
 import AuthButton from '@/app/components/AuthButton';
 import { useAuth } from '@/app/components/AuthProvider';
-
-// Archive storage key
-const ARCHIVE_KEY = 'eng-sparkling-archive';
 
 type QuestionType =
   | 'GRAMMAR_INCORRECT'
@@ -48,40 +46,6 @@ interface Question {
   answer: number;
   explanation: string;
   sentenceToInsert?: string;
-}
-
-// Archive item interface
-interface ArchivedQuestion {
-  id: string;
-  questionType: QuestionType;
-  question: Question;
-  article: ArticleResponse;
-  createdAt: string;
-}
-
-// Archive helper functions
-function getArchive(): ArchivedQuestion[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const data = localStorage.getItem(ARCHIVE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveToArchive(item: Omit<ArchivedQuestion, 'id' | 'createdAt'>): ArchivedQuestion {
-  const archive = getArchive();
-  const newItem: ArchivedQuestion = {
-    ...item,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-  };
-  archive.unshift(newItem); // Add to beginning
-  // Keep only last 50 items
-  const trimmed = archive.slice(0, 50);
-  localStorage.setItem(ARCHIVE_KEY, JSON.stringify(trimmed));
-  return newItem;
 }
 
 // Sparkling Logo Component
@@ -160,8 +124,14 @@ export default function WorkflowPage() {
       return;
     }
 
-    // Check coin balance
-    if (!hasEnoughCoins(COIN_COSTS.GENERATE_ARTICLE)) {
+    if (!user) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+
+    // Check coin balance from DB
+    const hasEnough = await hasEnoughCoinsInDB(user.id, COIN_COSTS.GENERATE_ARTICLE);
+    if (!hasEnough) {
       toast.error('코인이 부족합니다. 코인을 충전해주세요.');
       return;
     }
@@ -186,8 +156,8 @@ export default function WorkflowPage() {
         throw new Error(data.error || 'Failed to generate article');
       }
 
-      // Deduct coin after successful generation
-      deductCoins(COIN_COSTS.GENERATE_ARTICLE);
+      // Deduct coin after successful generation (DB)
+      await deductCoinsFromDB(user.id, COIN_COSTS.GENERATE_ARTICLE);
       triggerCoinUpdate();
 
       setGeneratedArticle(data);
@@ -208,9 +178,15 @@ export default function WorkflowPage() {
       return;
     }
 
-    // Check coin balance for all selected types
+    if (!user) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+
+    // Check coin balance for all selected types from DB
     const totalCost = selectedQuestionTypes.length * COIN_COSTS.GENERATE_QUESTION;
-    if (!hasEnoughCoins(totalCost)) {
+    const hasEnough = await hasEnoughCoinsInDB(user.id, totalCost);
+    if (!hasEnough) {
       toast.error(`코인이 부족합니다. 필요한 코인: ${totalCost}개`);
       return;
     }
@@ -254,8 +230,8 @@ export default function WorkflowPage() {
       if (result.success && result.question) {
         results.push({ type: result.type, question: result.question });
         successCount++;
-        // Deduct coin for each successful generation
-        deductCoins(COIN_COSTS.GENERATE_QUESTION);
+        // Deduct coin for each successful generation (DB)
+        await deductCoinsFromDB(user.id, COIN_COSTS.GENERATE_QUESTION);
       }
       setGenerationProgress(prev => prev ? { ...prev, current: prev.current + 1 } : null);
     }
@@ -291,35 +267,52 @@ export default function WorkflowPage() {
     setSavedIndexes(new Set());
   };
 
-  // Save individual question
-  const handleSaveQuestion = (index: number) => {
-    if (!generatedArticle || savedIndexes.has(index)) return;
+  // Save individual question (DB)
+  const handleSaveQuestion = async (index: number) => {
+    if (!generatedArticle || savedIndexes.has(index) || !user) return;
     const { type, question } = generatedQuestions[index];
-    saveToArchive({
-      questionType: type,
-      question: question,
-      article: generatedArticle,
-    });
-    setSavedIndexes(prev => new Set(prev).add(index));
-    toast.success('문제가 저장되었습니다!');
+
+    const result = await saveQuestionToArchive(
+      user.id,
+      type,
+      question,
+      generatedArticle
+    );
+
+    if (result) {
+      setSavedIndexes(prev => new Set(prev).add(index));
+      toast.success('문제가 저장되었습니다!');
+    } else {
+      toast.error('저장에 실패했습니다.');
+    }
   };
 
-  // Save all unsaved questions
-  const handleSaveAllToArchive = () => {
-    if (generatedQuestions.length === 0 || !generatedArticle) return;
+  // Save all unsaved questions (DB)
+  const handleSaveAllToArchive = async () => {
+    if (generatedQuestions.length === 0 || !generatedArticle || !user) return;
+
     let savedCount = 0;
-    generatedQuestions.forEach(({ type, question }, index) => {
+    const newSavedIndexes = new Set(savedIndexes);
+
+    for (let index = 0; index < generatedQuestions.length; index++) {
       if (!savedIndexes.has(index)) {
-        saveToArchive({
-          questionType: type,
-          question: question,
-          article: generatedArticle,
-        });
-        savedCount++;
+        const { type, question } = generatedQuestions[index];
+        const result = await saveQuestionToArchive(
+          user.id,
+          type,
+          question,
+          generatedArticle
+        );
+        if (result) {
+          newSavedIndexes.add(index);
+          savedCount++;
+        }
       }
-    });
+    }
+
+    setSavedIndexes(newSavedIndexes);
+
     if (savedCount > 0) {
-      setSavedIndexes(new Set(generatedQuestions.map((_, i) => i)));
       toast.success(`${savedCount}개 문제가 저장되었습니다!`);
     } else {
       toast('이미 모든 문제가 저장되었습니다.', { icon: 'ℹ️' });
@@ -390,7 +383,7 @@ export default function WorkflowPage() {
 
             {/* 사용자 영역 */}
             <div className="flex items-center gap-4">
-              <CoinDisplay showLabel />
+              <CoinDisplay showLabel showChargeButton />
               <AuthButton />
             </div>
           </div>
@@ -475,7 +468,7 @@ export default function WorkflowPage() {
                     <button
                       key={level}
                       onClick={() => setDifficulty(level)}
-                      className={`py-3 px-4 rounded-xl font-medium transition-all ${
+                      className={`py-3 px-4 rounded-xl font-medium transition-all cursor-pointer ${
                         difficulty === level
                           ? 'bg-gradient-to-r from-[var(--color-spark)] to-[var(--color-spark-light)] text-white shadow-md'
                           : 'bg-[var(--color-cream)] text-[var(--color-text)] hover:bg-[var(--color-cream-dark)] border border-[var(--color-spark)]/10'
@@ -543,7 +536,7 @@ export default function WorkflowPage() {
                 </h2>
                 <button
                   onClick={handleBackToStep1}
-                  className="text-[var(--color-spark)] hover:text-[var(--color-spark-deep)] text-sm font-medium transition-colors"
+                  className="text-[var(--color-spark)] hover:text-[var(--color-spark-deep)] text-sm font-medium transition-colors cursor-pointer"
                 >
                   ← 아티클 다시 생성
                 </button>
@@ -586,14 +579,14 @@ export default function WorkflowPage() {
                       <button
                         type="button"
                         onClick={selectAllTypes}
-                        className="text-xs px-2 py-1 text-[var(--color-spark)] hover:bg-[var(--color-spark)]/10 rounded transition-colors"
+                        className="text-xs px-2 py-1 text-[var(--color-spark)] hover:bg-[var(--color-spark)]/10 rounded transition-colors cursor-pointer"
                       >
                         전체선택
                       </button>
                       <button
                         type="button"
                         onClick={deselectAllTypes}
-                        className="text-xs px-2 py-1 text-[var(--color-text-muted)] hover:bg-[var(--color-ink)]/5 rounded transition-colors"
+                        className="text-xs px-2 py-1 text-[var(--color-text-muted)] hover:bg-[var(--color-ink)]/5 rounded transition-colors cursor-pointer"
                       >
                         선택해제
                       </button>
@@ -608,7 +601,7 @@ export default function WorkflowPage() {
                           key={type}
                           type="button"
                           onClick={() => toggleQuestionType(type)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                          className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors cursor-pointer ${
                             isSelected
                               ? 'bg-gradient-to-r from-[var(--color-spark)] to-[var(--color-mint)] text-white border-transparent'
                               : 'bg-[var(--color-cream)] text-[var(--color-text)] hover:bg-[var(--color-cream-dark)] border-[var(--color-spark)]/20'
@@ -629,7 +622,7 @@ export default function WorkflowPage() {
                 <button
                   onClick={handleGenerateQuestion}
                   disabled={isGeneratingQuestion || selectedQuestionTypes.length === 0}
-                  className="w-full bg-gradient-to-r from-[var(--color-mint)] to-[var(--color-spark)] text-white py-4 rounded-full font-semibold text-lg hover:shadow-lg hover:shadow-[var(--color-mint)]/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="w-full bg-gradient-to-r from-[var(--color-mint)] to-[var(--color-spark)] text-white py-4 rounded-full font-semibold text-lg hover:shadow-lg hover:shadow-[var(--color-mint)]/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
                 >
                   {isGeneratingQuestion ? (
                     <span className="flex items-center justify-center gap-3">
@@ -671,7 +664,7 @@ export default function WorkflowPage() {
                       <button
                         onClick={handleSaveAllToArchive}
                         disabled={savedIndexes.size === generatedQuestions.length}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 ${
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer ${
                           savedIndexes.size === generatedQuestions.length
                             ? 'bg-[var(--color-mint)]/20 text-[var(--color-mint)] cursor-default'
                             : 'bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] hover:bg-[var(--color-spark)]/20'
@@ -695,7 +688,7 @@ export default function WorkflowPage() {
                       </button>
                       <button
                         onClick={handleReset}
-                        className="px-4 py-2 bg-[var(--color-cream-dark)] text-[var(--color-text)] rounded-full text-sm font-medium hover:bg-[var(--color-ink)]/10 transition-colors"
+                        className="px-4 py-2 bg-[var(--color-cream-dark)] text-[var(--color-text)] rounded-full text-sm font-medium hover:bg-[var(--color-ink)]/10 transition-colors cursor-pointer"
                       >
                         처음부터 다시
                       </button>
@@ -725,7 +718,7 @@ export default function WorkflowPage() {
                         <button
                           onClick={() => handleSaveQuestion(qIndex)}
                           disabled={savedIndexes.has(qIndex)}
-                          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
                             savedIndexes.has(qIndex)
                               ? 'bg-[var(--color-mint)]/20 text-[var(--color-mint)] cursor-default'
                               : 'bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] hover:bg-[var(--color-spark)]/20'
