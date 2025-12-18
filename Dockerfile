@@ -12,8 +12,14 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Set base path for subpath deployment
+# Set build-time env vars (placeholders - actual values come at runtime)
 ENV NEXT_PUBLIC_BASE_PATH=/eng-sparkling
+ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder
+ENV NEXT_PUBLIC_TOSS_CLIENT_KEY=placeholder
+ENV OPENAI_API_KEY=placeholder
+ENV SUPABASE_SERVICE_ROLE_KEY=placeholder
+ENV TOSS_SECRET_KEY=placeholder
 
 # Build the application
 RUN npm run build
