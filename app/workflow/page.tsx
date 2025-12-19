@@ -1030,21 +1030,23 @@ export default function WorkflowPage() {
                           로그인하면 저장 가능
                         </span>
                       )}
-                      <PDFExportButton
-                        variant="button"
-                        questions={generatedQuestions.map(({ type, question }) => ({
-                          type,
-                          typeName: QUESTION_TYPE_LABELS[type],
-                          questionText: question.question,
-                          passage: question.modifiedPassage.replace(/<[^>]*>/g, ''),
-                          choices: question.choices,
-                          answer: question.answer,
-                          explanation: question.explanation,
-                          difficulty: generatedArticle.difficulty,
-                        }))}
-                        title={`ENG-SPARKLING - ${generatedArticle.title}`}
-                      />
-                      {user ? (
+                      {user && (
+                        <PDFExportButton
+                          variant="button"
+                          questions={generatedQuestions.map(({ type, question }) => ({
+                            type,
+                            typeName: QUESTION_TYPE_LABELS[type],
+                            questionText: question.question,
+                            passage: question.modifiedPassage.replace(/<[^>]*>/g, ''),
+                            choices: question.choices,
+                            answer: question.answer,
+                            explanation: question.explanation,
+                            difficulty: generatedArticle.difficulty,
+                          }))}
+                          title={`ENG-SPARKLING - ${generatedArticle.title}`}
+                        />
+                      )}
+                      {user && (
                         <button
                           onClick={handleSaveAllToArchive}
                           disabled={savedIndexes.size === generatedQuestions.length}
@@ -1070,16 +1072,6 @@ export default function WorkflowPage() {
                             </>
                           )}
                         </button>
-                      ) : (
-                        <Link
-                          href="/login"
-                          className="px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 bg-amber-100 text-amber-700 hover:bg-amber-200"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                          </svg>
-                          로그인하여 저장
-                        </Link>
                       )}
                       <button
                         onClick={handleReset}
@@ -1147,7 +1139,7 @@ export default function WorkflowPage() {
                       <div className="p-6 bg-[var(--color-cream)] rounded-xl border border-[var(--color-spark)]/10">
                         <h4 className="font-semibold text-[var(--color-ink)] mb-3 text-sm">지문</h4>
                         <p
-                          className="whitespace-pre-wrap leading-relaxed text-[var(--color-text)] [&>u]:underline [&>u]:decoration-[var(--color-spark)] [&>u]:decoration-2 [&>u]:underline-offset-2 [&>u]:font-medium [&>u]:text-[var(--color-spark-deep)]"
+                          className="passage-content whitespace-pre-wrap leading-relaxed text-[var(--color-text)]"
                           dangerouslySetInnerHTML={{ __html: question.modifiedPassage }}
                         />
                         {question.sentenceToInsert && (

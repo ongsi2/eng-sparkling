@@ -12,7 +12,12 @@
       "Bash(npx kill-port:*)",
       "WebSearch",
       "WebFetch(domain:peshare.com)",
-      "WebFetch(domain:orbi.kr)"
+      "WebFetch(domain:orbi.kr)",
+      "Bash(timeout 10 bash:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "Bash(export DISABLE_AUTOUPDATER=1)",
+      "Bash(echo:*)"
     ]
   }
 }

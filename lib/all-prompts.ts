@@ -69,6 +69,12 @@ For passage: "Students learn every day. The teacher helps them understand."
 - displayWord must be a single word that exists or could exist at that position
 - **NEVER use HTML tags in explanation. Use single quotes '...' for emphasis.**
 
+**CONNECTOR VARIATION (IMPORTANT):**
+Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
+- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
+- Or connect ideas directly without always using a connector
+- Natural flow is more important than formula
+
 **Output (JSON only):**
 {
   "question": "다음 글의 밑줄 친 부분 중, 어법상 틀린 것은?",
@@ -133,6 +139,12 @@ For the WRONG marker (isWrong=true):
 ✓ answer = index+1 of the isWrong marker
 ✓ explanation mentions displayWord as wrong and correctWord as the answer
 ✓ **NEVER use HTML tags (<u>, <b>, etc.) in explanation - use single quotes '...' instead**
+
+**CONNECTOR VARIATION (IMPORTANT):**
+Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
+- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
+- Or connect ideas directly without always using a connector
+- Natural flow is more important than formula
 
 **Output (JSON only):**
 {
@@ -207,8 +219,10 @@ Paragraph 1: State the answer
 Paragraph 2: Quote and analyze the context
 "본문에서 '[관련 문장 인용]'이라고 했는데, [문맥 분석]."
 
-Paragraph 3: Explain why this interpretation fits
-"따라서 '[영어 표현]'은 문자 그대로의 의미가 아니라 [비유적/문맥적 의미 설명]."
+Paragraph 3: Explain why this interpretation fits (VARY YOUR CONNECTORS)
+Use natural flow without always starting with "따라서". Options:
+- "이처럼", "그러므로", "이런 이유로", "결국", or just explain directly
+- Example: "'break the ice'는 문자 그대로 '얼음을 깨다'가 아니라, 어색하거나 불편한 상황을 완화시킨다는 비유적 의미로 사용되었습니다."
 
 Paragraph 4: Why other choices are wrong (optional but recommended)
 "①번 '[오답]'은 [왜 틀린지], ②번은 [왜 틀린지]."
@@ -273,6 +287,12 @@ The explanation must include:
 4. Briefly explain why other distractors are insufficient (too narrow/broad/off-topic)
 5. Do NOT just say "이 글은 ~에 대해 다루고 있습니다" without evidence
 
+**CONNECTOR VARIATION (IMPORTANT):**
+Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
+- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
+- Or connect ideas directly without always using a connector
+- Natural flow is more important than formula
+
 **GOOD EXAMPLE:**
 "정답은 ③번 '인공지능의 의료 분야 활용'입니다. 본문에서 'AI systems can analyze patient data with remarkable accuracy'와 'Machine learning algorithms can spot subtle anomalies in X-rays'라고 했는데, 이는 인공지능이 의료 진단에 활용되는 구체적인 방식을 설명합니다. 글 전체가 AI의 의료 분야 적용에 초점을 맞추고 있어 ③번이 주제를 가장 잘 포괄합니다. ①, ②번은 지엽적인 내용이고, ④, ⑤번은 본문에서 다루지 않는 내용입니다."
 
@@ -317,6 +337,12 @@ The explanation must include:
 4. Explain why at least 1-2 distractors are NOT the best choice
 5. Do NOT just say "이 글의 핵심은 ~입니다" without evidence
 
+**CONNECTOR VARIATION (IMPORTANT):**
+Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
+- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
+- Or connect ideas directly without always using a connector
+- Natural flow is more important than formula
+
 **GOOD EXAMPLE:**
 "정답은 ②번 'The Power of Music in Healing'입니다. 본문에서 'Music therapy has shown remarkable effects on patients with various conditions'와 'the rhythm and melody can stimulate brain regions associated with healing'이라고 했는데, 글 전체가 음악의 치료 효과에 초점을 맞추고 있습니다. ①번 'Music History'는 역사가 아닌 치료 효과를 다루므로 부적절하고, ④번 'Brain Science'는 너무 광범위합니다."
 
@@ -358,6 +384,12 @@ The explanation must include:
 2. Quote the EXACT sentence or phrase from the passage that proves it
 3. Explain how the passage supports this statement
 4. Do NOT just say "본문에서 확인할 수 있습니다" without quoting evidence
+
+**CONNECTOR VARIATION (IMPORTANT):**
+Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
+- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
+- Or connect ideas directly without always using a connector
+- Natural flow is more important than formula
 
 **GOOD EXAMPLE:**
 "정답은 ④번 '콜라는 1800년대 후반에 처음 만들어졌다'입니다. 본문에서 'Coca-Cola was first created in 1886 by a pharmacist in Atlanta'라고 명시되어 있어, 1800년대 후반(1886년)에 처음 만들어졌음을 확인할 수 있습니다."
@@ -402,8 +434,14 @@ The explanation must include:
 4. If NOT MENTIONED: Explain what topics the passage covers and why this isn't included
 5. Do NOT just say "언급되지 않았습니다" - explain specifically
 
+**CONNECTOR VARIATION (IMPORTANT):**
+Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
+- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
+- Or connect ideas directly without always using a connector
+- Natural flow is more important than formula
+
 **GOOD EXAMPLE (FALSE):**
-"정답은 ③번 '콜라는 원래 의료 목적으로 개발되지 않았다'입니다. 본문에서 'It was originally developed as a medicinal tonic'라고 명시되어 있어, 콜라가 원래 의료 목적(강장제)으로 개발되었음을 알 수 있습니다. 따라서 ③번 진술은 본문 내용과 반대됩니다."
+"정답은 ③번 '콜라는 원래 의료 목적으로 개발되지 않았다'입니다. 본문에서 'It was originally developed as a medicinal tonic'라고 명시되어 있어, 콜라가 원래 의료 목적(강장제)으로 개발되었음을 알 수 있습니다. 이처럼 ③번 진술은 본문 내용과 반대됩니다."
 
 **GOOD EXAMPLE (NOT MENTIONED):**
 "정답은 ②번 '콜라는 아시아에서 처음 인기를 얻었다'입니다. 본문은 콜라의 발명 과정과 미국 내 초기 판매에 대해서만 다루고 있으며, 아시아 시장에 대한 내용은 전혀 언급되지 않았습니다."
@@ -451,8 +489,12 @@ Paragraph 1: State the answer with Korean meaning
 Paragraph 2: Quote and analyze the context
 "본문에서 'When people love one another, they often work together to create a ______ environment'라고 했는데, 사랑이 있는 관계에서는 서로 협력하여 평화로운 환경을 만드는 것이 일반적입니다."
 
-Paragraph 3: Explain why this fits and others don't
-"따라서 '평화로운(peaceful)'이 문맥에 가장 잘 맞습니다. 다른 선택지인 'hostile(적대적인)', 'chaotic(혼란스러운)', 'isolated(고립된)', 'harsh(가혹한)'는 모두 부정적인 의미를 가지고 있어 사랑이 있는 환경을 설명하기에는 적합하지 않습니다."
+Paragraph 3: Explain why this fits and others don't (VARY YOUR CONNECTORS - don't always use "따라서")
+Use natural Korean connectors like:
+- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉" (instead of always "따라서")
+- Or no connector at all, just explain directly
+
+Example: "'peaceful(평화로운)'이 문맥에 가장 적합합니다. 다른 선택지인 'hostile(적대적인)', 'chaotic(혼란스러운)', 'isolated(고립된)', 'harsh(가혹한)'는 모두 부정적인 의미를 가지고 있어 사랑이 있는 환경을 설명하기에는 적합하지 않습니다."
 
 **VOCABULARY IN EXPLANATION (CRITICAL):**
 When choices are English words, ALWAYS include Korean meanings in parentheses:
@@ -540,6 +582,12 @@ Paragraph 3: Explain (B) with evidence
 ALWAYS include Korean meanings for English words in parentheses:
 - "sweet(달콤한)", "bitter(쓴)", "sour(신)"
 - "popularity(인기)", "decline(쇠퇴)", "growth(성장)"
+
+**CONNECTOR VARIATION (IMPORTANT):**
+Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
+- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
+- Or connect ideas directly without always using a connector
+- Natural flow is more important than formula
 
 **GOOD EXAMPLE:**
 "정답은 ③번 '(A) sweet(달콤한) - (B) popularity(인기)'입니다.
@@ -665,6 +713,12 @@ Why ③ is irrelevant: It's about dogs (same general topic), but discusses guide
    - Type 2 (Contradicts): "③번은 [구체적 논지]와 반대되는 내용으로 논리적 흐름을 해칩니다"
    - Type 3 (Tangential): "③번은 [관련 영역]에 대한 내용이지만 [구체적 논지]를 지원하지 않습니다"
 
+**CONNECTOR VARIATION (IMPORTANT):**
+Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
+- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉", "반면"
+- Or connect ideas directly without always using a connector
+- Natural flow is more important than formula
+
 **CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
 
 **Output (JSON only):**
@@ -702,6 +756,12 @@ The explanation must include:
 4. Explain the logical connection: Why does the given sentence fit between these two?
 5. Mention discourse markers, pronouns, or logical flow that support the answer
 6. Do NOT just say "이 위치가 자연스럽습니다" - explain WHY
+
+**CONNECTOR VARIATION (IMPORTANT):**
+Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
+- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
+- Or connect ideas directly without always using a connector
+- Natural flow is more important than formula
 
 **GOOD EXAMPLE:**
 "정답은 ②번 (B)입니다. (B) 앞 문장에서 'Scientists discovered a new method'라고 새로운 방법의 발견을 언급했고, 주어진 문장 'However, this approach had limitations'은 그 방법의 한계를 설명합니다. 그리고 (B) 뒤 문장 'Therefore, they sought alternatives'는 대안을 찾게 된 이유를 설명하므로, 주어진 문장이 (B)에 들어가야 논리적 흐름이 완성됩니다."
@@ -766,6 +826,12 @@ The explanation must include:
 4. Explain WHY the third paragraph comes last (conclusion/logical ending)
 5. Point out specific discourse markers, pronouns, or logical links
 6. Do NOT just say "논리적 흐름상 자연스럽습니다" - explain the actual connections
+
+**CONNECTOR VARIATION (IMPORTANT):**
+Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
+- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
+- Or connect ideas directly without always using a connector
+- Natural flow is more important than formula
 
 **GOOD EXAMPLE:**
 "정답은 ③번 '(B)-(C)-(A)'입니다. 주어진 글에서 새로운 기술의 등장을 언급했으므로, 먼저 (B)가 와야 합니다. (B)에서 'This technology'라고 했는데, 이는 주어진 글의 기술을 가리킵니다. 다음으로 (C)는 'However'로 시작하여 (B)의 내용에 대한 반론을 제시합니다. 마지막으로 (A)는 'Therefore'로 시작하여 결론을 내리므로 가장 마지막에 와야 합니다."

@@ -587,6 +587,22 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-ink);
 }
 
+/* Underline styling for question passages - CRITICAL FOR ALL DEVICES */
+.passage-card u,
+.question-card u,
+.passage-content u,
+p u,
+u {
+  text-decoration: underline !important;
+  text-decoration-color: var(--color-spark) !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
+  font-weight: 500 !important;
+  color: var(--color-spark-deep) !important;
+  -webkit-text-decoration: underline !important;
+  -webkit-text-decoration-color: var(--color-spark) !important;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

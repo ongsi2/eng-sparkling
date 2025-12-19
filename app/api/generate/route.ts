@@ -50,7 +50,8 @@ function buildModifiedPassageFromMarkers(passage: string, markers: GrammarMarker
   let modifiedPassage = passage;
   const markerSymbols = ['①', '②', '③', '④', '⑤'];
   const usedPositions: number[] = [];
-  const useUnderline = questionType === 'SELECT_INCORRECT_WORD';
+  // 문법형과 틀린 단어 선택형 모두 밑줄 필요
+  const useUnderline = questionType === 'SELECT_INCORRECT_WORD' || questionType === 'GRAMMAR_INCORRECT';
 
   // Process markers in order, tracking used positions
   for (let i = 0; i < markers.length; i++) {
