@@ -147,12 +147,39 @@ export default function PaymentPage() {
               ENG-SPARKLING
             </span>
           </Link>
-          <div className="flex items-center gap-4">
-            <Link href="/workflow" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
-              ← 문제 생성
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* 문제 생성 버튼 - 모바일에서는 하단 nav 사용 */}
+            <Link
+              href="/workflow"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] hover:bg-[var(--color-spark)]/5 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              문제 생성
             </Link>
-            <div className="h-6 w-px bg-[var(--color-spark)]/20" />
-            <CoinDisplay showLabel />
+
+            {/* 저장함 버튼 - 모바일에서는 하단 nav 사용 */}
+            <Link
+              href="/archive"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] hover:bg-[var(--color-spark)]/5 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+              저장함
+            </Link>
+
+            {/* 구분선 - 모바일에서 숨김 */}
+            <div className="hidden md:block h-5 w-px bg-[var(--color-ink)]/10" />
+
+            {/* 코인 영역 */}
+            <CoinDisplay />
+
+            {/* 구분선 */}
+            <div className="h-5 w-px bg-[var(--color-ink)]/10" />
+
+            {/* 사용자 영역 */}
             <AuthButton />
           </div>
         </div>

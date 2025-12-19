@@ -148,20 +148,51 @@ export default function Home() {
           {loading ? (
             <div className="w-24 h-8 bg-[var(--color-cream-dark)] rounded-full animate-pulse" />
           ) : user ? (
-            <div className="flex items-center gap-4">
-              <Link href="/workflow" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* 문제 생성 버튼 - 모바일에서는 하단 nav 사용 */}
+              <Link
+                href="/workflow"
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] hover:bg-[var(--color-spark)]/5 transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
                 문제 생성
               </Link>
-              <Link href="/archive" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
+
+              {/* 저장함 버튼 - 모바일에서는 하단 nav 사용 */}
+              <Link
+                href="/archive"
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] hover:bg-[var(--color-spark)]/5 transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
                 저장함
               </Link>
-              <div className="h-6 w-px bg-[var(--color-spark)]/20" />
-              <CoinDisplay showLabel showChargeButton />
+
+              {/* 구분선 - 모바일에서 숨김 */}
+              <div className="hidden md:block h-5 w-px bg-[var(--color-ink)]/10" />
+
+              {/* 코인 영역 */}
+              <CoinDisplay />
+              {/* 충전 버튼 - 데스크톱만 */}
+              <Link
+                href="/payment"
+                className="hidden sm:block px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full transition-colors"
+              >
+                충전
+              </Link>
+
+              {/* 구분선 */}
+              <div className="h-5 w-px bg-[var(--color-ink)]/10" />
+
+              {/* 사용자 영역 */}
               <AuthButton />
             </div>
           ) : (
-            <Link href="/login" className="btn-ghost text-sm">
-              로그인 / 회원가입
+            <Link href="/login" className="btn-spark text-sm px-4 py-2">
+              로그인
             </Link>
           )}
         </div>
@@ -189,7 +220,7 @@ export default function Home() {
           </h1>
 
           <p className="text-lg md:text-xl text-[var(--color-text-muted)] mb-10 max-w-2xl mx-auto animate-fade-in-up delay-200">
-            수능 영어 13유형을 1분 만에 생성하세요.<br className="hidden md:block" />
+            수능 영어 12가지 유형을 1분 만에 생성하세요.<br className="hidden md:block" />
             지문만 입력하면 AI가 정교한 문제를 만들어 드립니다.
           </p>
 
@@ -202,17 +233,12 @@ export default function Home() {
                 </svg>
               </Link>
             ) : (
-              <>
-                <Link href="/login" className="btn-spark">
-                  무료로 시작하기
-                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </Link>
-                <span className="text-sm text-[var(--color-text-light)]">
-                  첫 달 무료 체험
-                </span>
-              </>
+              <Link href="/login" className="btn-spark">
+                무료로 시작하기
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </Link>
             )}
           </div>
         </div>
@@ -290,7 +316,7 @@ export default function Home() {
             </div>
 
             {/* Hidden Rows */}
-            <div className={`space-y-3 overflow-hidden transition-all duration-500 ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className={`space-y-3 transition-all duration-500 ${isExpanded ? 'max-h-96 opacity-100 overflow-visible pt-1' : 'max-h-0 opacity-0 overflow-hidden'}`}>
               <div className="flex flex-wrap justify-center gap-3">
                 {secondRowTypes.map((typeInfo) => (
                   <button
@@ -441,10 +467,10 @@ export default function Home() {
                 <LightningIcon className="w-6 h-6" />
               </div>
               <h3 className="font-display text-lg font-semibold text-[var(--color-ink)] mb-3">
-                1분 내 13유형 생성
+                1분 내 12가지 유형 생성
               </h3>
               <p className="text-[var(--color-text-muted)] text-sm leading-relaxed">
-                고성능 AI가 지문을 분석해 수능 독해 대표 13유형을 정교하게 생성하고, 변별력 있는 선지까지 함께 구성합니다.
+                고성능 AI가 지문을 분석해 수능 독해 대표 12가지 유형을 정교하게 생성하고, 변별력 있는 선지까지 함께 구성합니다.
               </p>
             </div>
 

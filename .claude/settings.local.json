@@ -5,7 +5,14 @@
       "Bash(npm install)",
       "Bash(timeout 15 npm run dev:*)",
       "Bash(taskkill:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(claude doctor)",
+      "Bash(claude:*)",
+      "Bash(cmd //c taskkill /PID 47284 /F)",
+      "Bash(npx kill-port:*)",
+      "WebSearch",
+      "WebFetch(domain:peshare.com)",
+      "WebFetch(domain:orbi.kr)"
     ]
   }
 }

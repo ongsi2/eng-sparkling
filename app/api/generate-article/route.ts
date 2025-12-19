@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createArticlePrompt, ArticleRequest, ArticleResponse } from '@/lib/article-prompts';
 import { checkRateLimit, getClientIP, API_RATE_LIMITS } from '@/lib/rate-limit';
+import { checkDemoUsage, incrementDemoUsage, getClientIP as getDemoClientIP } from '@/lib/demo';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -29,8 +30,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body: ArticleRequest = await request.json();
-    const { keywords, difficulty, wordCount } = body;
+    const body: ArticleRequest & { demo?: boolean } = await request.json();
+    const { keywords, difficulty, wordCount, demo = false } = body;
+
+    // Demo mode: check usage limit
+    if (demo) {
+      const ip = getDemoClientIP(request);
+      const usage = await checkDemoUsage(ip);
+
+      if (!usage.canUse) {
+        return NextResponse.json(
+          {
+            error: 'DEMO_LIMIT_EXCEEDED',
+            message: '데모 사용 횟수를 모두 소진했습니다. 로그인하시면 더 많은 문제를 생성할 수 있습니다.',
+            remaining: 0,
+            max: usage.max_usage
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     // Validate input
     if (!keywords || keywords.length === 0) {
@@ -102,6 +121,12 @@ export async function POST(request: NextRequest) {
         { error: 'Invalid article response structure', details: articleData },
         { status: 500 }
       );
+    }
+
+    // Demo mode: increment usage after successful generation
+    if (demo) {
+      const ip = getDemoClientIP(request);
+      await incrementDemoUsage(ip);
     }
 
     return NextResponse.json(articleData);

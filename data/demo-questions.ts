@@ -56,17 +56,33 @@ export interface DemoQuestion {
 export const DEMO_QUESTIONS: Record<QuestionType, DemoQuestion> = {
   GRAMMAR_INCORRECT: {
     question: "다음 글의 밑줄 친 부분 중, 어법상 틀린 것은?",
-    modifiedPassage: `The most obvious difference between music and language is that music does not refer to anything concrete. Although music can evoke images, feelings, and associations, it does not directly denote objects, actions, or concepts the way words ①do. This apparent limitation, however, is also one of music's greatest strengths. Because music lacks explicit referential meaning, it can communicate something ②more universal and immediate. The emotional content of a piece of music is not filtered through the mediation of language; it ③strikes us directly. Music bypasses the rational, analytical mind and speaks directly to our emotions. This is why music can move us so ④profound, even when we cannot articulate exactly what it is ⑤expressing.`,
+    modifiedPassage: `The most obvious difference between music and language is that music does not refer to anything concrete. Although music can evoke images, feelings, and associations, it does not directly denote objects, actions, or concepts the way words <u>①do</u>. This apparent limitation, however, is also one of music's greatest strengths. Because music lacks explicit referential meaning, it can communicate something <u>②more</u> universal and immediate. The emotional content of a piece of music is not filtered through the mediation of language; it <u>③strikes</u> us directly. Music bypasses the rational, analytical mind and speaks directly to our emotions. This is why music can move us so <u>④profound</u>, even when we cannot articulate exactly what it is <u>⑤expressing</u>.`,
     choices: ["①", "②", "③", "④", "⑤"],
     answer: 4,
-    explanation: "④ profound → profoundly: 동사 'move'를 수식하는 부사가 필요합니다. 형용사 'profound'가 아닌 부사 'profoundly'가 와야 '매우 깊이 감동시키다'라는 의미가 됩니다."
+    explanation: `정답은 ④번입니다. 'profound'를 'profoundly'로 고쳐야 합니다.
+
+동사 'move'를 수식하려면 형용사가 아닌 부사가 필요합니다. 'move us so profound'가 아니라 'move us so profoundly'가 되어야 '우리를 매우 깊이 감동시키다'라는 의미가 됩니다.
+
+나머지 선택지 분석:
+① do - 복수 주어 'words'를 받는 동사로 적절함
+② more - 비교급을 만드는 부사로 적절함
+③ strikes - 단수 주어 'it'을 받는 동사로 적절함
+⑤ expressing - 'what it is expressing'에서 진행형으로 적절함`
   },
   SELECT_INCORRECT_WORD: {
     question: "다음 글의 밑줄 친 부분 중, 문맥상 낱말의 쓰임이 적절하지 않은 것은?",
-    modifiedPassage: `The most obvious difference between music and language is that music does not refer to anything ①concrete. Although music can evoke images, feelings, and associations, it does not directly denote objects, actions, or concepts the way words do. This apparent ②limitation, however, is also one of music's greatest strengths. Because music lacks explicit referential meaning, it can communicate something more ③restricted and immediate. The emotional content of a piece of music is not filtered through the mediation of language; it strikes us ④directly. Music bypasses the rational, analytical mind and speaks directly to our emotions. This is why music can move us so ⑤profoundly, even when we cannot articulate exactly what it is expressing.`,
+    modifiedPassage: `The most obvious difference between music and language is that music does not refer to anything <u>①concrete</u>. Although music can evoke images, feelings, and associations, it does not directly denote objects, actions, or concepts the way words do. This apparent <u>②limitation</u>, however, is also one of music's greatest strengths. Because music lacks explicit referential meaning, it can communicate something more <u>③restricted</u> and immediate. The emotional content of a piece of music is not filtered through the mediation of language; it strikes us <u>④directly</u>. Music bypasses the rational, analytical mind and speaks directly to our emotions. This is why music can move us so <u>⑤profoundly</u>, even when we cannot articulate exactly what it is expressing.`,
     choices: ["①", "②", "③", "④", "⑤"],
     answer: 3,
-    explanation: "③ restricted → universal: 문맥상 음악은 명시적 의미가 없기 때문에 '더 제한적인' 것이 아니라 '더 보편적이고 즉각적인' 것을 전달할 수 있다는 내용입니다. 따라서 restricted(제한적인)는 universal(보편적인)로 바꿔야 적절합니다."
+    explanation: `정답은 ③번입니다. 'restricted(제한적인)'를 'universal(보편적인)'로 바꿔야 합니다.
+
+본문의 논리 흐름상, 음악은 명시적 의미가 없기 때문에 오히려 '더 보편적이고(universal) 즉각적인' 것을 전달할 수 있다는 내용입니다. 'restricted(제한적인)'는 문맥과 반대되는 의미입니다.
+
+나머지 선택지 분석:
+① concrete(구체적인) - 음악이 구체적인 것을 지시하지 않는다는 문맥에 적절
+② limitation(한계) - 이 한계가 오히려 장점이라는 역설적 전개에 적절
+④ directly(직접적으로) - 감정에 직접 호소한다는 문맥에 적절
+⑤ profoundly(깊이) - 깊이 감동시킨다는 문맥에 적절`
   },
   PICK_UNDERLINE: {
     question: "밑줄 친 'bypasses the rational, analytical mind'가 다음 글에서 의미하는 바로 가장 적절한 것은?",
@@ -79,7 +95,13 @@ export const DEMO_QUESTIONS: Record<QuestionType, DemoQuestion> = {
       "분석적 능력을 향상시킨다"
     ],
     answer: 1,
-    explanation: "밑줄 친 'bypasses the rational, analytical mind'에서 'bypass'는 '우회하다, 건너뛰다'라는 의미입니다. 따라서 ① '논리적 사고 과정을 거치지 않는다'가 정답입니다. 음악이 이성적이고 분석적인 마음을 우회한다는 것은 논리적 사고 과정 없이 직접 감정에 호소한다는 의미입니다."
+    explanation: `정답은 ① '논리적 사고 과정을 거치지 않는다'입니다.
+
+본문에서 'Music bypasses the rational, analytical mind and speaks directly to our emotions'라고 했는데, 여기서 'bypass'는 '우회하다, 건너뛰다'라는 의미입니다.
+
+따라서 'bypasses the rational, analytical mind'는 문자 그대로 '이성적이고 분석적인 마음을 건너뛴다'는 뜻으로, 음악이 논리적 사고 과정 없이 직접 감정에 호소한다는 의미입니다.
+
+②번 '언어적 표현을 통해 전달된다'는 오히려 반대 내용이고, ④⑤번은 이성과 분석을 '강화/향상'시킨다고 했으므로 문맥과 맞지 않습니다.`
   },
   PICK_SUBJECT: {
     question: "다음 글의 주제로 가장 적절한 것은?",
@@ -144,7 +166,13 @@ export const DEMO_QUESTIONS: Record<QuestionType, DemoQuestion> = {
       "needs verbal explanation"
     ],
     answer: 2,
-    explanation: "문맥상 음악은 이성적, 분석적 마음을 '우회'하고 무언가에 '직접' 말한다는 흐름입니다. 앞뒤 문맥에서 감정과 직접적인 전달을 강조하고 있으므로, 'speaks directly to our emotions(감정에 직접 말하다)'가 가장 적절합니다."
+    explanation: `정답은 ②번 'speaks directly to our emotions(우리의 감정에 직접 말하다)'입니다.
+
+본문에서 'Music bypasses the rational, analytical mind and ______'라고 했는데, 음악이 이성적·분석적 마음을 '우회(bypass)'한 후 어디로 향하는지를 묻고 있습니다.
+
+바로 다음 문장에서 'This is why music can move us so profoundly'라고 음악이 우리를 깊이 감동시킨다고 했으므로, 감정에 직접 호소한다는 내용이 들어가야 자연스럽습니다.
+
+다른 선택지인 'requires logical interpretation(논리적 해석이 필요하다)', 'depends on linguistic understanding(언어적 이해에 의존한다)', 'demands analytical thinking(분석적 사고를 요구한다)'는 모두 앞의 'bypasses the rational, analytical mind'와 모순됩니다.`
   },
   COMPLETE_SUMMARY: {
     question: "다음 글의 내용을 한 문장으로 요약하고자 한다. 빈칸 (A), (B)에 들어갈 말로 가장 적절한 것은?",
@@ -159,7 +187,13 @@ export const DEMO_QUESTIONS: Record<QuestionType, DemoQuestion> = {
       "(A) implicit — (B) analysis"
     ],
     answer: 1,
-    explanation: "글의 요지는 음악이 '명시적(explicit)' 의미가 없기 때문에 오히려 '감정(emotions)'에 더 직접적이고 보편적으로 연결될 수 있다는 것입니다."
+    explanation: `정답은 ①번 '(A) explicit(명시적인) — (B) emotions(감정)'입니다.
+
+본문에서 'Because music lacks explicit referential meaning'이라고 했으므로 (A)에는 음악에 없는 '명시적인(explicit)' 의미가 적절합니다.
+
+또한 'Music bypasses the rational, analytical mind and speaks directly to our emotions'라고 했으므로 (B)에는 음악이 직접 연결되는 대상인 '감정(emotions)'이 적절합니다.
+
+②번의 'intellect(지성)', ③번의 'thoughts(생각)', ④번의 'logic(논리)', ⑤번의 'analysis(분석)'는 모두 음악이 '우회'한다고 한 이성적·분석적 영역에 해당하므로 오답입니다.`
   },
   IRRELEVANT_SENTENCE: {
     question: "다음 글에서 전체 흐름과 관계 없는 문장은?",

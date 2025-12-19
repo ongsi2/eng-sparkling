@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useAuth } from './AuthProvider';
+import Link from 'next/link';
+import { isAdminEmail } from '@/lib/admin-client';
 
 // Google Icon
 const GoogleIcon = () => (
@@ -24,6 +26,8 @@ export default function AuthButton() {
   const { user, loading, signInWithGitHub, signInWithGoogle, signOut } = useAuth();
   const [showLoginOptions, setShowLoginOptions] = useState(false);
 
+  const isAdmin = isAdminEmail(user?.email);
+
   if (loading) {
     return (
       <div className="w-20 h-8 bg-[var(--color-cream-dark)] rounded-full animate-pulse" />
@@ -45,6 +49,14 @@ export default function AuthButton() {
             {user.user_metadata?.user_name || user.user_metadata?.full_name || user.email?.split('@')[0]}
           </span>
         </div>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="px-3 py-1.5 text-sm text-[var(--color-spark)] hover:text-[var(--color-spark-dark)] font-medium transition-colors"
+          >
+            관리자
+          </Link>
+        )}
         <button
           onClick={signOut}
           className="px-3 py-1.5 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-ink)] transition-colors cursor-pointer"

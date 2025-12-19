@@ -3,6 +3,24 @@
  * ENG-SPARK 전체 기능 구현
  */
 
+/**
+ * ========================================
+ * GLOBAL RULES FOR ALL QUESTION TYPES
+ * ========================================
+ *
+ * 1. **CHOICES ARRAY MUST NEVER INCLUDE ANSWER INDICATORS**
+ *    - WRONG: ["peaceful (정답)", "hostile (오답)", ...]
+ *    - WRONG: ["단순한 단 성분 (오답)", "건강에 해로운 주범 (정답)", ...]
+ *    - CORRECT: ["peaceful", "hostile", "chaotic", "isolated", "harsh"]
+ *
+ * 2. **NEVER USE HTML TAGS IN EXPLANATION FIELD**
+ *    - Use single quotes '...' for emphasis
+ *    - Use \\n\\n for paragraph breaks
+ *
+ * 3. **ANSWER FIELD MUST MATCH THE EXPLANATION**
+ *    - If explanation says "정답은 ③번", answer must be 3
+ */
+
 // ============================================
 // 1. 문법형 (어법상 틀린 것)
 // ============================================
@@ -49,6 +67,7 @@ For passage: "Students learn every day. The teacher helps them understand."
 - EXACTLY 1 marker must have isWrong: true
 - answer must be the index+1 of the wrong marker (1-5)
 - displayWord must be a single word that exists or could exist at that position
+- **NEVER use HTML tags in explanation. Use single quotes '...' for emphasis.**
 
 **Output (JSON only):**
 {
@@ -113,6 +132,7 @@ For the WRONG marker (isWrong=true):
 ✓ For isWrong=false: displayWord = originalWord (they must be THE SAME)
 ✓ answer = index+1 of the isWrong marker
 ✓ explanation mentions displayWord as wrong and correctWord as the answer
+✓ **NEVER use HTML tags (<u>, <b>, etc.) in explanation - use single quotes '...' instead**
 
 **Output (JSON only):**
 {
@@ -131,47 +151,99 @@ You are an expert English teacher specializing in Korean SAT (수능) style ques
 
 Create a question asking what an underlined phrase/expression means in context.
 
+**CRITICAL - DIFFICULTY REQUIREMENTS:**
+DO NOT choose simple words that can be directly translated!
+- BAD: "fight" → "싸우다" (too easy, 1:1 translation)
+- BAD: "love" → "사랑하다" (too obvious)
+- BAD: "run" → "달리다" (direct translation)
+- BAD: Foreign words/transliterations like "yangchi", "kimchi", "hanbok" → These are just translations of Korean words, NOT expressions with deeper meaning!
+- BAD: Technical terms or proper nouns that simply name something
+
+GOOD choices require CONTEXTUAL INTERPRETATION:
+- GOOD: "break the ice" → requires understanding it means "ease awkwardness"
+- GOOD: "a double-edged sword" → requires understanding it means "something with both benefits and drawbacks"
+- GOOD: "take a backseat" → requires understanding it means "become less important"
+- GOOD: "weather the storm" → requires understanding it means "survive difficult times"
+- GOOD: Multi-word phrases with contextual meaning that differs from literal meaning
+
+**IMPORTANT: If the passage does not contain any idiomatic expressions, metaphors, or phrases with non-literal meaning, respond with:**
+{
+  "error": "NO_SUITABLE_EXPRESSION",
+  "message": "This passage does not contain suitable expressions for this question type. The passage is too straightforward/literal."
+}
+
 **Requirements:**
-1. Choose ONE key phrase, idiom, or expression from the passage that has deeper contextual meaning
-2. Mark the underlined part using <u>...</u> HTML tags in the modifiedPassage ONLY
-3. Create 5 Korean interpretation options (4 wrong, 1 correct)
-4. The correct answer should capture the contextual/figurative meaning of the underlined part
-5. All 5 choices must be SEMANTICALLY DISTINCT - no two choices can mean the same thing
-6. Korean translations must sound natural (avoid awkward phrases like "세력이 강해진다")
-7. **CRITICAL: Preserve the original paragraph structure in modifiedPassage. Keep all line breaks (\\n\\n) between paragraphs exactly as they appear in the original passage.**
+1. Choose ONE key phrase, idiom, metaphor, or multi-word expression that CANNOT be directly translated
+2. The phrase must require understanding the CONTEXT to interpret correctly
+3. Mark the underlined part using <u>...</u> HTML tags in the modifiedPassage ONLY
+4. Create 5 Korean interpretation options (4 wrong, 1 correct)
+5. **THE CORRECT ANSWER MUST BE THE CONTEXTUAL/FIGURATIVE MEANING, NEVER THE LITERAL TRANSLATION**
+6. **THE LITERAL TRANSLATION MUST BE INCLUDED AS ONE OF THE WRONG ANSWERS (distractor)**
+7. All 5 choices must be SEMANTICALLY DISTINCT - no two choices can mean the same thing
+8. Korean translations must sound natural
+9. **CRITICAL: Preserve the original paragraph structure in modifiedPassage.**
 
 **Passage:**
 {passage}
 
 **CRITICAL RULES (MUST FOLLOW):**
-1. Use <u> tags ONLY in modifiedPassage, NEVER in explanation
-2. Each choice must have a clearly different meaning from all other choices
-3. Write Korean in natural, everyday language
-4. The "answer" field number MUST match the choice referenced in "explanation"
-5. If answer is 2, explanation MUST say "② [exact text of choice 2]"
-6. DOUBLE-CHECK: The choice number in explanation MUST equal the answer number
+1. NEVER choose single common words (fight, run, love, help, etc.)
+2. Choose phrases of 2+ words OR single words with non-literal contextual meaning
+3. **THE CORRECT ANSWER MUST NEVER BE A LITERAL/DIRECT TRANSLATION!**
+   - BAD ANSWER: "maintaining the human touch" → "인간의 접촉을 유지하다" (literal translation)
+   - GOOD ANSWER: "maintaining the human touch" → "인간적인 감성을 유지하다" (contextual meaning)
+4. **ONE OF THE DISTRACTORS MUST BE THE LITERAL TRANSLATION (as a wrong answer)**
+5. **ABSOLUTELY FORBIDDEN: NEVER EVER use HTML tags (<u>, <b>, etc.) in the "explanation" field. Use single quotes '...' for emphasis instead.**
+6. Each choice must have a clearly different meaning from all other choices
+7. The "answer" field number MUST match the choice referenced in "explanation"
+8. **USE \\n\\n (double newline) to separate paragraphs in explanation. DO NOT use single \\ or \\n.**
 
 **EXPLANATION REQUIREMENTS (CRITICAL):**
-The explanation must include:
-1. The underlined phrase in English (without <u> tags)
-2. The answer number and the correct Korean interpretation
-3. Quote the context around the underlined phrase
-4. Explain WHY this interpretation fits - what does the phrase mean in THIS specific context?
-5. Do NOT just say "문맥상 ~를 의미합니다" - explain the actual reasoning
+The explanation must be structured with clear paragraphs:
 
-**GOOD EXAMPLE:**
-"밑줄 친 'break the ice'는 '② 어색한 분위기를 깨다'를 의미합니다. 본문에서 'At the beginning of the meeting, the manager told a joke to break the ice'라고 했는데, 회의 시작 시 농담을 한 이유는 처음 만난 사람들 사이의 어색함을 없애기 위함입니다. 따라서 'break the ice'는 문자 그대로 '얼음을 깨다'가 아니라, 어색하거나 불편한 상황을 완화시킨다는 비유적 의미로 사용되었습니다."
+Paragraph 1: State the answer
+"정답은 ③번 '[정답 선지]'입니다."
+
+Paragraph 2: Quote and analyze the context
+"본문에서 '[관련 문장 인용]'이라고 했는데, [문맥 분석]."
+
+Paragraph 3: Explain why this interpretation fits
+"따라서 '[영어 표현]'은 문자 그대로의 의미가 아니라 [비유적/문맥적 의미 설명]."
+
+Paragraph 4: Why other choices are wrong (optional but recommended)
+"①번 '[오답]'은 [왜 틀린지], ②번은 [왜 틀린지]."
+
+**GOOD EXAMPLE 1 (NO HTML TAGS, USE \\n\\n FOR PARAGRAPH BREAKS):**
+"정답은 ②번 '어색한 분위기를 깨다'입니다.\\n\\n본문에서 'At the beginning of the meeting, the manager told a joke to break the ice'라고 했는데, 회의 시작 시 농담을 한 이유는 처음 만난 사람들 사이의 어색함을 없애기 위함입니다.\\n\\n따라서 'break the ice'는 문자 그대로 '얼음을 깨다'가 아니라, 어색하거나 불편한 상황을 완화시킨다는 비유적 의미로 사용되었습니다.\\n\\n①번 '얼음을 깨다'는 문자 그대로의 해석이라 오답입니다."
+
+**GOOD EXAMPLE 2 (maintaining the human touch):**
+For "maintaining the human touch" in context of AI and healthcare:
+- CORRECT ANSWER: "인간적인 감성을 유지하다" or "인간다운 배려를 유지하다" (contextual meaning)
+- WRONG ANSWER (DISTRACTOR): "인간의 접촉을 유지하다" (literal translation - MUST be included as a wrong choice!)
+- Other distractors: "기술의 발전을 막다", "인간의 우월성을 주장하다", etc.
 
 **BAD EXAMPLE (DO NOT DO THIS):**
-"밑줄 친 부분은 문맥상 '② 어색한 분위기를 깨다'를 의미합니다." ← 이런 식으로 하지 마세요!
+"밑줄 친 부분은 문맥상 '② 어색한 분위기를 깨다'를 의미합니다." ← 너무 짧고 설명이 없음!
+Using literal translation as the correct answer ← ABSOLUTELY WRONG!
+
+**CRITICAL WARNING ABOUT CHOICES:**
+The choices array must ONLY contain the actual Korean interpretation options.
+- WRONG: ["문자 그대로의 직역 (오답)", "문맥적 의미 (정답)", ...]
+- CORRECT: ["문자 그대로의 직역", "문맥적 의미", "관련 없는 오답1", ...]
 
 **Output (JSON only):**
 {
   "question": "밑줄 친 부분이 의미하는 바로 가장 적절한 것은?",
   "modifiedPassage": "passage with <u>underlined phrase</u> using HTML tags",
-  "choices": ["오답1", "정답 선지", "오답2", "오답3", "오답4"],
+  "choices": [
+    "얼음을 깨다",
+    "어색한 분위기를 깨다",
+    "관계를 단절하다",
+    "냉정함을 유지하다",
+    "침묵을 지키다"
+  ],
   "answer": 2,
-  "explanation": "밑줄 친 '[영어 표현]'은 '[②번 선지 내용]'을 의미합니다. 본문에서 '[관련 문장 인용]'이라고 했는데, [왜 이 의미인지 구체적 설명]. 따라서 이 표현은 [의미 설명]."
+  "explanation": "정답은 ②번 '어색한 분위기를 깨다'입니다.\\n\\n본문에서 '[인용]'이라고 했는데, [분석].\\n\\n따라서 'break the ice'는 문자 그대로 '얼음을 깨다'가 아니라 [비유적/문맥적 의미 설명].\\n\\n①번 '얼음을 깨다'는 문자 그대로의 해석이라 오답입니다."
 }
 `;
 
@@ -206,6 +278,8 @@ The explanation must include:
 
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ③번입니다. 이 글은 인공지능에 대해 다루고 있습니다." ← 이런 식으로 하지 마세요!
+
+**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
 
 **Output (JSON only):**
 {
@@ -249,6 +323,8 @@ The explanation must include:
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ②번입니다. 이 글의 핵심은 음악입니다." ← 이런 식으로 하지 마세요!
 
+**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
+
 **Output (JSON only):**
 {
   "question": "다음 글의 제목으로 가장 적절한 것은?",
@@ -288,6 +364,8 @@ The explanation must include:
 
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ④번입니다. 본문에서 확인할 수 있습니다." ← 이런 식으로 하지 마세요!
+
+**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
 
 **Output (JSON only):**
 {
@@ -333,6 +411,8 @@ The explanation must include:
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ③번입니다. 본문에서 언급되지 않았습니다." ← 이런 식으로 하지 마세요!
 
+**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
+
 **Output (JSON only):**
 {
   "question": "다음 글의 내용과 일치하지 않는 것은?",
@@ -357,31 +437,62 @@ Create a question with 1 blank in the passage.
 3. Only 1 should fit contextually
 4. The explanation MUST be DETAILED and CONTEXTUAL
 5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage. Keep all line breaks (\\n\\n) between paragraphs exactly as they appear in the original passage.**
+6. **ABSOLUTELY FORBIDDEN: NEVER include "(정답)", "(오답)", "(correct)", "(wrong)" or any answer indicators in the choices array! Choices must ONLY contain the actual word/phrase options, nothing else!**
 
 **Passage:**
 {passage}
 
 **EXPLANATION REQUIREMENTS (CRITICAL):**
-The explanation must include:
-1. The answer number and choice text
-2. Quote the relevant sentence from the passage
-3. Explain WHY this word fits the context specifically
-4. Do NOT just say "문맥상 적절합니다" - explain the actual reasoning
+The explanation must be structured with clear paragraphs AND include vocabulary help:
+
+Paragraph 1: State the answer with Korean meaning
+"정답은 ③번 'peaceful(평화로운)'입니다."
+
+Paragraph 2: Quote and analyze the context
+"본문에서 'When people love one another, they often work together to create a ______ environment'라고 했는데, 사랑이 있는 관계에서는 서로 협력하여 평화로운 환경을 만드는 것이 일반적입니다."
+
+Paragraph 3: Explain why this fits and others don't
+"따라서 '평화로운(peaceful)'이 문맥에 가장 잘 맞습니다. 다른 선택지인 'hostile(적대적인)', 'chaotic(혼란스러운)', 'isolated(고립된)', 'harsh(가혹한)'는 모두 부정적인 의미를 가지고 있어 사랑이 있는 환경을 설명하기에는 적합하지 않습니다."
+
+**VOCABULARY IN EXPLANATION (CRITICAL):**
+When choices are English words, ALWAYS include Korean meanings in parentheses:
+- "peaceful(평화로운)"
+- "hostile(적대적인)"
+- "chaotic(혼란스러운)"
+- "isolated(고립된)"
+- "harsh(가혹한)"
 
 **GOOD EXAMPLE:**
-"정답은 ③번 'sweet'입니다. 본문에서 'Many people enjoy its ______ taste and refreshing qualities'라고 했는데, 콜라는 설탕이 들어간 탄산음료로 단맛이 특징입니다. 따라서 '달콤한(sweet)'이 문맥에 가장 적합합니다."
+"정답은 ③번 'peaceful(평화로운)'입니다.
+
+본문에서 'When people love one another, they often work together to create a ______ environment'라고 했는데, 사랑이 있는 관계에서는 서로 협력하여 평화로운 환경을 만드는 것이 일반적입니다.
+
+따라서 '평화로운(peaceful)'이 문맥에 가장 잘 맞습니다. 다른 선택지인 'hostile(적대적인)', 'chaotic(혼란스러운)', 'isolated(고립된)', 'harsh(가혹한)'는 모두 부정적인 의미를 가지고 있어 사랑이 있는 환경을 설명하기에는 적합하지 않습니다."
 
 **BAD EXAMPLE (DO NOT DO THIS):**
-"정답은 ③번 'sweet'입니다. 문맥상 'sweet'가 적절하기 때문입니다." ← 이런 식으로 하지 마세요!
+"정답은 ③번 'peaceful'입니다. 문맥상 'peaceful'가 적절하기 때문입니다." ← 뜻도 없고 설명도 없음!
+
+**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis. Use \\n\\n for paragraph breaks.**
 
 **Output (JSON only):**
 {
   "question": "다음 빈칸에 들어갈 말로 가장 적절한 것은?",
   "modifiedPassage": "passage with ______ blank",
-  "choices": ["option1", "option2", "option3", "option4", "option5"],
-  "answer": 2,
-  "explanation": "정답은 ②번 '[정답]'입니다. 본문에서 '[관련 문장 인용]'이라고 했는데, [왜 이 단어가 적절한지 구체적 설명]. 따라서 '[정답]'이 가장 적합합니다."
+  "choices": [
+    "peaceful",
+    "hostile",
+    "chaotic",
+    "isolated",
+    "harsh"
+  ],
+  "answer": 1,
+  "explanation": "정답은 ①번 'peaceful(평화로운)'입니다.\\n\\n본문에서 '[관련 문장 인용]'이라고 했는데, [문맥 분석].\\n\\n따라서 'peaceful(평화로운)'이 가장 적합합니다. 다른 선택지인 'hostile(적대적인)', 'chaotic(혼란스러운)', 'isolated(고립된)', 'harsh(가혹한)'는 [왜 안 맞는지]."
 }
+
+**CRITICAL REMINDER:**
+- choices array contains ONLY the words: ["peaceful", "hostile", "chaotic", "isolated", "harsh"]
+- NEVER include: ["peaceful (정답)", "hostile (오답)", ...] ← WRONG!
+- NEVER include: ["단순한 단 성분 (오답)", "건강에 해로운 주범 (정답)", ...] ← WRONG!
 `;
 
 // ============================================
@@ -414,17 +525,33 @@ Example structure:
 Summary: [One sentence summary with (A) ______ and (B) ______ blanks]"
 
 **EXPLANATION REQUIREMENTS (CRITICAL):**
-The explanation must include:
-1. The answer number and the correct (A)-(B) pair
-2. For (A): Quote relevant part of passage and explain WHY this word fits
-3. For (B): Quote relevant part of passage and explain WHY this word fits
-4. Do NOT just say "(A)에는 ~가 적절합니다" - explain the actual reasoning
+The explanation must be structured with clear paragraphs AND include vocabulary help:
+
+Paragraph 1: State the answer with Korean meanings
+"정답은 ③번 '(A) sweet(달콤한) - (B) popularity(인기)'입니다."
+
+Paragraph 2: Explain (A) with evidence
+"본문에서 'its sugary taste appeals to many consumers'라고 했으므로 (A)에는 설탕의 맛을 나타내는 'sweet(달콤한)'이 적절합니다."
+
+Paragraph 3: Explain (B) with evidence
+"또한 'it became one of the most consumed beverages worldwide'라고 했으므로 (B)에는 전 세계적인 인기를 나타내는 'popularity(인기)'가 적절합니다."
+
+**VOCABULARY IN EXPLANATION (CRITICAL):**
+ALWAYS include Korean meanings for English words in parentheses:
+- "sweet(달콤한)", "bitter(쓴)", "sour(신)"
+- "popularity(인기)", "decline(쇠퇴)", "growth(성장)"
 
 **GOOD EXAMPLE:**
-"정답은 ③번 '(A) sweet - (B) popularity'입니다. 본문에서 'its sugary taste appeals to many consumers'라고 했으므로 (A)에는 설탕의 맛을 나타내는 'sweet'이 적절합니다. 또한 'it became one of the most consumed beverages worldwide'라고 했으므로 (B)에는 전 세계적인 인기를 나타내는 'popularity'가 적절합니다."
+"정답은 ③번 '(A) sweet(달콤한) - (B) popularity(인기)'입니다.
+
+본문에서 'its sugary taste appeals to many consumers'라고 했으므로 (A)에는 설탕의 맛을 나타내는 'sweet(달콤한)'이 적절합니다.
+
+또한 'it became one of the most consumed beverages worldwide'라고 했으므로 (B)에는 전 세계적인 인기를 나타내는 'popularity(인기)'가 적절합니다."
 
 **BAD EXAMPLE (DO NOT DO THIS):**
-"정답은 ③번입니다. (A)에는 sweet이, (B)에는 popularity가 적절합니다." ← 이런 식으로 하지 마세요!
+"정답은 ③번입니다. (A)에는 sweet이, (B)에는 popularity가 적절합니다." ← 뜻도 없고 문단도 안 나눔!
+
+**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis. Use \\n\\n for paragraph breaks.**
 
 **Output (JSON only):**
 {
@@ -432,7 +559,7 @@ The explanation must include:
   "modifiedPassage": "[FULL ORIGINAL PASSAGE HERE]\\n\\nSummary: [summary sentence with (A) ______ and (B) ______ blanks]",
   "choices": ["(A) word1 - (B) word2", "(A) word3 - (B) word4", "(A) word5 - (B) word6", "(A) word7 - (B) word8", "(A) word9 - (B) word10"],
   "answer": 3,
-  "explanation": "정답은 ③번 '(A) [정답A] - (B) [정답B]'입니다. 본문에서 '[A 관련 인용]'이라고 했으므로 (A)에는 [설명]을 나타내는 '[정답A]'이 적절합니다. 또한 '[B 관련 인용]'이라고 했으므로 (B)에는 [설명]을 나타내는 '[정답B]'가 적절합니다."
+  "explanation": "정답은 ③번 '(A) [정답A](한글뜻) - (B) [정답B](한글뜻)'입니다.\\n\\n본문에서 '[A 관련 인용]'이라고 했으므로 (A)에는 [설명]을 나타내는 '[정답A](뜻)'이 적절합니다.\\n\\n또한 '[B 관련 인용]'이라고 했으므로 (B)에는 [설명]을 나타내는 '[정답B](뜻)'가 적절합니다."
 }
 `;
 
@@ -448,32 +575,69 @@ Create a question where students identify which sentence is IRRELEVANT to the ma
 In real Korean SAT (수능), the irrelevant sentence is NOT completely off-topic. Instead, it is:
 - SUBTLY off-topic: Related to the general subject area but not to the SPECIFIC ARGUMENT
 - SUPERFICIALLY connected: Uses similar vocabulary or themes but doesn't advance the main point
-- LOGICALLY disconnected: Breaks the cause-effect or argumentative flow
+- LOGICALLY disconnected: Breaks the cause-effect or argumentative flow OR contradicts the main point
 - REQUIRES careful reading to identify: Not obviously wrong at first glance
 
+**2024 수능 ACTUAL EXAMPLE:**
+Passage: "Speaking fast is a high-risk proposition... the brain needs processing time"
+- ① Brain needs time to make decisions
+- ② Brain sits idle considering options
+- ③ Making good decisions helps you speak faster ← IRRELEVANT (contradicts the main argument)
+- ④ When brain can't keep up, you get verbal fillers
+- ⑤ Um, ah are what mouth does when brain has nowhere to go
+
+Why ③ is wrong: The passage argues "fast speech is problematic because brain needs time," but ③ says "good decisions help you speak faster" - this CONTRADICTS the main argument.
+
 **WRONG APPROACH (DO NOT DO THIS):**
+- Passage about Starbucks marketing strategy → Inserting "Starbucks has a wide range of merchandise" (this IS part of marketing strategy!)
 - Passage about K-pop → Inserting a sentence about Mount Everest (too obvious!)
 - Passage about climate change → Inserting a sentence about cooking recipes (too random!)
 
 **CORRECT APPROACH (수능 스타일):**
-- Passage about "how K-pop uses social media for global reach" → Insert a sentence about "K-pop fashion trends" (related to K-pop, but off the main argument about social media strategy)
-- Passage about "negative effects of climate change on agriculture" → Insert a sentence about "positive economic growth of environmental industries" (related to climate/environment, but doesn't fit the "negative effects on agriculture" argument)
+Type 1 - Different sub-topic within same area:
+- Passage about "how K-pop uses social media for global reach" → Insert "K-pop fashion trends have influenced global markets" (K-pop related, but not about social media strategy)
+
+Type 2 - Contradicts the main argument:
+- Passage about "why fast speech is problematic" → Insert "Making good decisions helps you speak faster" (contradicts the main point)
+
+Type 3 - Related but doesn't support the specific argument:
+- Passage about "negative effects of climate change on agriculture" → Insert "Renewable energy industry is growing rapidly" (environment-related, but doesn't support "negative effects on agriculture")
 
 **Passage:**
 {passage}
 
 **STEP-BY-STEP INSTRUCTIONS:**
-1. Identify the SPECIFIC ARGUMENT of the passage (not just the general topic)
+1. **Identify the SPECIFIC ARGUMENT** of the passage (not just the general topic)
+   - Ask: "What SPECIFIC POINT is the author making?"
+   - General topic: "Starbucks" → Specific argument: "how Starbucks creates customer experience through store design"
    - General topic: "K-pop" → Specific argument: "how K-pop uses social media for global success"
    - General topic: "Education" → Specific argument: "why hands-on learning is more effective than lectures"
-2. Select 5 consecutive sentences from the passage
-3. CREATE one irrelevant sentence that:
-   - Uses vocabulary related to the general topic
-   - Sounds natural and well-written
+
+2. **Select 5 consecutive sentences** from the passage that support this specific argument
+
+3. **CREATE one irrelevant sentence** using one of these three types:
+
+   **Type 1 - Different sub-topic** (most common):
+   - Same general topic, but discusses a DIFFERENT specific aspect
+   - Example: Passage about "Starbucks store design" → Insert "Starbucks sources coffee beans from Ethiopia"
+
+   **Type 2 - Contradicts the argument**:
+   - Makes a claim that goes AGAINST the main point
+   - Example: Passage about "why fast speech is bad" → Insert "Good decisions help you speak faster"
+
+   **Type 3 - Related but tangential**:
+   - Related to the topic area but doesn't SUPPORT the specific argument
+   - Example: Passage about "benefits of reading fiction" → Insert "Public libraries have faced budget cuts in recent years"
+
+4. **Ensure the irrelevant sentence**:
+   - Uses vocabulary related to the general topic (to make it deceptive)
+   - Sounds natural and well-written (not obviously wrong)
    - Does NOT advance or support the specific argument
    - Could mislead careless readers into thinking it belongs
-4. REPLACE one of the 5 sentences with your created irrelevant sentence
-5. Mark all 5 sentences with ①②③④⑤
+
+5. **REPLACE** one of the 5 sentences (preferably ②, ③, or ④) with your created irrelevant sentence
+
+6. **Mark all 5 sentences** with ①②③④⑤
 
 **EXAMPLE:**
 Passage about "Dogs provide emotional support to their owners":
@@ -489,9 +653,19 @@ Modified: "①Dogs are loyal companions. ②They sense their owners' emotions. �
 Why ③ is irrelevant: It's about dogs (same general topic), but discusses guide dog training (different specific topic), not emotional support benefits. A careless reader might think "it's about dogs, so it fits" - but it doesn't support the main argument.
 
 **EXPLANATION REQUIREMENTS:**
-1. State the SPECIFIC ARGUMENT (not just "이 글은 ~에 대한 글입니다")
-2. Explain how the irrelevant sentence is THEMATICALLY related but LOGICALLY disconnected
-3. Point out what the irrelevant sentence discusses vs what it SHOULD discuss to fit the flow
+1. **State the SPECIFIC ARGUMENT** (not just "이 글은 스타벅스에 대한 글입니다")
+   - BAD: "이 글은 스타벅스에 대한 글입니다"
+   - GOOD: "이 글은 '스타벅스가 매장 디자인을 통해 고객 경험을 창출하는 방법'에 대해 논하고 있습니다"
+
+2. **Explain why other sentences support this argument**
+   - "①②④⑤번 문장은 모두 [구체적 논지]를 뒷받침하는 내용입니다"
+
+3. **Explain what the irrelevant sentence discusses and why it doesn't fit**
+   - Type 1 (Different sub-topic): "③번은 [같은 주제]에 대한 내용이지만 '[다른 세부 주제]'를 다루고 있어 글의 흐름과 맞지 않습니다"
+   - Type 2 (Contradicts): "③번은 [구체적 논지]와 반대되는 내용으로 논리적 흐름을 해칩니다"
+   - Type 3 (Tangential): "③번은 [관련 영역]에 대한 내용이지만 [구체적 논지]를 지원하지 않습니다"
+
+**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
 
 **Output (JSON only):**
 {
@@ -499,7 +673,7 @@ Why ③ is irrelevant: It's about dogs (same general topic), but discusses guide
   "modifiedPassage": "①First sentence. ②Second sentence. ③Third sentence (irrelevant). ④Fourth sentence. ⑤Fifth sentence.",
   "choices": ["①", "②", "③", "④", "⑤"],
   "answer": 3,
-  "explanation": "정답은 ③번입니다. 이 글은 '[구체적 논지]'에 대해 논하고 있습니다. ①②④⑤번 문장은 모두 [구체적 논지]를 뒷받침하는 내용인 반면, ③번 문장은 [같은 주제 영역]에 대한 내용이지만 '[다른 세부 주제]'를 다루고 있어 글의 논리적 흐름과 맞지 않습니다."
+  "explanation": "정답은 ③번입니다. 이 글은 '[구체적이고 명확한 논지]'에 대해 논하고 있습니다. ①②④⑤번 문장은 모두 [구체적 논지]를 뒷받침하는 내용인 반면, ③번 문장은 [같은 주제 영역]에 대한 내용이지만 '[왜 무관한지 구체적으로]'하여 글의 논리적 흐름과 맞지 않습니다."
 }
 `;
 
@@ -534,6 +708,8 @@ The explanation must include:
 
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ②번 (B)입니다. 이 위치가 가장 자연스럽습니다." ← 이런 식으로 하지 마세요!
+
+**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
 
 **Output (JSON only):**
 {
@@ -596,6 +772,8 @@ The explanation must include:
 
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ③번입니다. 논리적 흐름상 자연스럽습니다." ← 이런 식으로 하지 마세요!
+
+**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
 
 **Output (JSON only):**
 {

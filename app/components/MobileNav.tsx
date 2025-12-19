@@ -51,7 +51,7 @@ const navItems: NavItem[] = [
   },
   {
     href: '/archive',
-    label: '보관함',
+    label: '저장함',
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path

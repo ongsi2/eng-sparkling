@@ -9,6 +9,7 @@ import { createGrammarPrompt } from '@/lib/prompts';
 import { createPrompt } from '@/lib/all-prompts';
 import { GeneratedQuestion, GenerateQuestionRequest } from '@/types';
 import { checkRateLimit, getClientIP, API_RATE_LIMITS } from '@/lib/rate-limit';
+import { getDemoUsageFromRequest, incrementDemoUsage, getClientIP as getDemoClientIP } from '@/lib/demo';
 
 // Types that require all 5 markers (①②③④⑤)
 const MARKER_REQUIRED_TYPES = ['GRAMMAR_INCORRECT', 'SELECT_INCORRECT_WORD'];
@@ -172,8 +173,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const body: GenerateQuestionRequest = await request.json();
-    const { passage, questionType } = body;
+    const body: GenerateQuestionRequest & { demo?: boolean } = await request.json();
+    const { passage, questionType, demo } = body;
+
+    // Demo mode: check IP-based usage limit
+    if (demo) {
+      const demoUsage = await getDemoUsageFromRequest(request);
+      if (!demoUsage.canUse) {
+        return NextResponse.json(
+          {
+            error: '데모 사용 횟수를 모두 소진했습니다. 로그인하시면 더 많은 문제를 생성할 수 있습니다.',
+            errorCode: 'DEMO_LIMIT_EXCEEDED',
+            remaining: 0,
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     // Validation
     if (!passage || passage.trim().length === 0) {
@@ -248,6 +264,18 @@ export async function POST(request: NextRequest) {
 
         // Parse JSON response
         parsed = JSON.parse(responseText);
+
+        // Check if AI returned an error (e.g., passage not suitable for this question type)
+        if (parsed.error) {
+          const errorMessages: Record<string, string> = {
+            'NO_SUITABLE_EXPRESSION': '이 지문에는 밑줄의 의미형 문제에 적합한 관용구나 비유적 표현이 없습니다. 다른 문제 유형을 선택해주세요.',
+          };
+          const message = errorMessages[parsed.error] || parsed.message || '이 지문은 해당 문제 유형에 적합하지 않습니다.';
+          return NextResponse.json(
+            { error: message, errorCode: parsed.error },
+            { status: 400 }
+          );
+        }
 
         // Handle GRAMMAR_INCORRECT and SELECT_INCORRECT_WORD with markers array format
         if (MARKER_REQUIRED_TYPES.includes(questionType) && parsed.markers && Array.isArray(parsed.markers)) {
@@ -333,6 +361,12 @@ export async function POST(request: NextRequest) {
 
     if (!parsed) {
       throw lastError || new Error('Failed to generate question after multiple attempts');
+    }
+
+    // Demo mode: increment usage after successful generation
+    if (demo) {
+      const ip = getDemoClientIP(request);
+      await incrementDemoUsage(ip);
     }
 
     // Construct response

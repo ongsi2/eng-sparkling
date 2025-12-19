@@ -134,10 +134,10 @@ export default function LoginPage() {
 
             {/* Demo Link */}
             <Link
-              href="/"
+              href="/workflow"
               className="block w-full px-6 py-3 border border-[var(--color-spark)]/20 text-[var(--color-text)] rounded-xl font-medium hover:bg-[var(--color-cream-dark)] transition-colors cursor-pointer"
             >
-              로그인 없이 데모 체험
+              로그인 없이 데모 체험 (3회 무료)
             </Link>
           </div>
 

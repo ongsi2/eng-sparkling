@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
 import { ArticleResponse } from '@/lib/article-prompts';
@@ -12,6 +12,11 @@ import AuthButton from '@/app/components/AuthButton';
 import { useAuth } from '@/app/components/AuthProvider';
 import { ArticleSkeleton, QuestionSkeleton, ProgressBar } from '@/app/components/Skeleton';
 import { PDFExportButton } from '@/app/components/PDFExportButton';
+
+interface DemoUsage {
+  remaining: number;
+  canUse: boolean;
+}
 
 type QuestionType =
   | 'GRAMMAR_INCORRECT'
@@ -86,12 +91,29 @@ export default function WorkflowPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  // 로그인 안 했으면 /login으로 리다이렉트
+  // Demo mode state
+  const [demoUsage, setDemoUsage] = useState<DemoUsage | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+
+  // Fetch demo usage on mount (for non-logged-in users)
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    async function fetchDemoUsage() {
+      if (!user && !loading) {
+        try {
+          const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+          const response = await fetch(`${basePath}/api/demo/status`);
+          if (response.ok) {
+            const data = await response.json();
+            setDemoUsage(data);
+            setIsDemoMode(true);
+          }
+        } catch (error) {
+          console.error('Failed to fetch demo usage:', error);
+        }
+      }
     }
-  }, [user, loading, router]);
+    fetchDemoUsage();
+  }, [user, loading]);
 
   const [step, setStep] = useState<1 | 2>(1);
 
@@ -141,15 +163,21 @@ export default function WorkflowPage() {
       return;
     }
 
-    if (!user) {
+    // 로그인 사용자: 코인 체크
+    if (user) {
+      const hasEnough = await hasEnoughCoinsInDB(user.id, COIN_COSTS.GENERATE_ARTICLE);
+      if (!hasEnough) {
+        toast.error('코인이 부족합니다. 코인을 충전해주세요.');
+        return;
+      }
+    } else if (isDemoMode) {
+      // 데모 모드: 사용 횟수 체크
+      if (!demoUsage?.canUse) {
+        toast.error('데모 사용 횟수를 모두 소진했습니다. 로그인하시면 더 많은 문제를 생성할 수 있습니다.');
+        return;
+      }
+    } else {
       toast.error('로그인이 필요합니다.');
-      return;
-    }
-
-    // Check coin balance from DB
-    const hasEnough = await hasEnoughCoinsInDB(user.id, COIN_COSTS.GENERATE_ARTICLE);
-    if (!hasEnough) {
-      toast.error('코인이 부족합니다. 코인을 충전해주세요.');
       return;
     }
 
@@ -165,6 +193,7 @@ export default function WorkflowPage() {
           keywords: keywordArray,
           difficulty,
           wordCount,
+          demo: isDemoMode && !user,
         }),
       });
 
@@ -174,9 +203,23 @@ export default function WorkflowPage() {
         throw new Error(data.error || 'Failed to generate article');
       }
 
-      // Deduct coin after successful generation (DB)
-      await deductCoinsFromDB(user.id, COIN_COSTS.GENERATE_ARTICLE);
-      triggerCoinUpdate();
+      // Deduct coin after successful generation (DB) - only for logged-in users
+      if (user) {
+        await deductCoinsFromDB(user.id, COIN_COSTS.GENERATE_ARTICLE);
+        triggerCoinUpdate();
+      } else if (isDemoMode) {
+        // Refresh demo usage after article generation
+        try {
+          const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+          const response = await fetch(`${basePath}/api/demo/status`);
+          if (response.ok) {
+            const data = await response.json();
+            setDemoUsage(data);
+          }
+        } catch (error) {
+          console.error('Failed to refresh demo usage:', error);
+        }
+      }
 
       setGeneratedArticle(data);
       setStep(2);
@@ -196,16 +239,27 @@ export default function WorkflowPage() {
       return;
     }
 
-    if (!user) {
+    // 로그인 사용자: 코인 체크
+    if (user) {
+      const totalCost = selectedQuestionTypes.length * COIN_COSTS.GENERATE_QUESTION;
+      const hasEnough = await hasEnoughCoinsInDB(user.id, totalCost);
+      if (!hasEnough) {
+        toast.error(`코인이 부족합니다. 필요한 코인: ${totalCost}개`);
+        return;
+      }
+    } else if (isDemoMode) {
+      // 데모 모드: 사용 횟수 체크 (1개만 생성 가능)
+      if (!demoUsage?.canUse) {
+        toast.error('데모 사용 횟수를 모두 소진했습니다. 로그인하시면 더 많은 문제를 생성할 수 있습니다.');
+        return;
+      }
+      // 데모 모드에서는 1개만 생성 가능
+      if (selectedQuestionTypes.length > demoUsage.remaining) {
+        toast.error(`데모 모드에서는 ${demoUsage.remaining}개만 더 생성할 수 있습니다.`);
+        return;
+      }
+    } else {
       toast.error('로그인이 필요합니다.');
-      return;
-    }
-
-    // Check coin balance for all selected types from DB
-    const totalCost = selectedQuestionTypes.length * COIN_COSTS.GENERATE_QUESTION;
-    const hasEnough = await hasEnoughCoinsInDB(user.id, totalCost);
-    if (!hasEnough) {
-      toast.error(`코인이 부족합니다. 필요한 코인: ${totalCost}개`);
       return;
     }
 
@@ -227,20 +281,29 @@ export default function WorkflowPage() {
           body: JSON.stringify({
             passage: generatedArticle.article,
             questionType: type,
+            demo: isDemoMode && !user,
           }),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
+          // 데모 한도 초과 시 중단
+          if (data.errorCode === 'DEMO_LIMIT_EXCEEDED') {
+            toast.error('데모 사용 횟수를 모두 소진했습니다.');
+            break;
+          }
           const errorMsg = data.details || data.error || 'Failed to generate question';
           throw new Error(errorMsg);
         }
 
         results.push({ type, question: data as Question });
         successCount++;
-        // Deduct coin for each successful generation (DB)
-        await deductCoinsFromDB(user.id, COIN_COSTS.GENERATE_QUESTION);
+
+        // Deduct coin for each successful generation (DB) - only for logged-in users
+        if (user) {
+          await deductCoinsFromDB(user.id, COIN_COSTS.GENERATE_QUESTION);
+        }
       } catch (error: any) {
         console.error(`Question generation error for ${type}:`, error);
       }
@@ -250,7 +313,22 @@ export default function WorkflowPage() {
       setGenerationProgress({ current: completedCount, total: selectedQuestionTypes.length });
     }
 
-    triggerCoinUpdate();
+    if (user) {
+      triggerCoinUpdate();
+    } else if (isDemoMode) {
+      // Refresh demo usage after generation
+      try {
+        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+        const response = await fetch(`${basePath}/api/demo/status`);
+        if (response.ok) {
+          const data = await response.json();
+          setDemoUsage(data);
+        }
+      } catch (error) {
+        console.error('Failed to refresh demo usage:', error);
+      }
+    }
+
     setGeneratedQuestions(results);
     setSavedIndexes(new Set());
     setIsGeneratingQuestion(false);
@@ -285,7 +363,8 @@ export default function WorkflowPage() {
       return;
     }
 
-    if (!user) {
+    // 데모 모드에서도 직접 입력은 허용 (무료)
+    if (!user && !isDemoMode) {
       toast.error('로그인이 필요합니다.');
       return;
     }
@@ -377,8 +456,17 @@ export default function WorkflowPage() {
     }
   };
 
-  // 로딩 중이거나 로그인 안 했으면 로딩 화면 표시
-  if (loading || !user) {
+  // 로딩 중이면 로딩 화면 표시
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-cream)] flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-[var(--color-spark)] border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  // 비로그인 + 데모 모드 초기화 중
+  if (!user && !demoUsage) {
     return (
       <div className="min-h-screen bg-[var(--color-cream)] flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-[var(--color-spark)] border-t-transparent rounded-full" />
@@ -422,28 +510,66 @@ export default function WorkflowPage() {
               ENG-SPARKLING
             </span>
           </Link>
-          <div className="flex items-center gap-6">
-            {/* 네비게이션 */}
-            <nav className="flex items-center gap-4">
-              <Link href="/archive" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
-                저장함
-              </Link>
-              <Link href="/" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] transition-colors">
-                홈
-              </Link>
-            </nav>
+          <div className="flex items-center gap-2 md:gap-3">
+            {user ? (
+              <>
+                {/* 저장함 버튼 - 모바일에서는 하단 nav 사용 */}
+                <Link
+                  href="/archive"
+                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] hover:bg-[var(--color-spark)]/5 transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                  </svg>
+                  저장함
+                </Link>
 
-            {/* 구분선 */}
-            <div className="h-6 w-px bg-[var(--color-spark)]/20" />
+                {/* 구분선 - 모바일에서 숨김 */}
+                <div className="hidden md:block h-5 w-px bg-[var(--color-ink)]/10" />
 
-            {/* 사용자 영역 */}
-            <div className="flex items-center gap-4">
-              <CoinDisplay showLabel showChargeButton />
-              <AuthButton />
-            </div>
+                {/* 코인 영역 */}
+                <CoinDisplay />
+                {/* 충전 버튼 - 데스크톱만 */}
+                <Link
+                  href="/payment"
+                  className="hidden sm:block px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full transition-colors"
+                >
+                  충전
+                </Link>
+
+                {/* 구분선 */}
+                <div className="h-5 w-px bg-[var(--color-ink)]/10" />
+
+                {/* 사용자 영역 */}
+                <AuthButton />
+              </>
+            ) : isDemoMode ? (
+              <>
+                {/* 데모 모드 표시 */}
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full">
+                  <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span className="text-xs font-semibold text-amber-700">
+                    데모 모드
+                  </span>
+                  <span className="text-xs text-amber-600">
+                    ({demoUsage?.remaining ?? 0}회 남음)
+                  </span>
+                </div>
+
+                {/* 구분선 */}
+                <div className="h-5 w-px bg-[var(--color-ink)]/10" />
+
+                {/* 로그인 버튼 */}
+                <Link
+                  href="/login"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-[var(--color-spark)] to-[var(--color-mint)] rounded-full hover:shadow-lg transition-all"
+                >
+                  로그인
+                </Link>
+              </>
+            ) : null}
           </div>
         </div>
       </header>
@@ -554,7 +680,7 @@ export default function WorkflowPage() {
                     <label className="block text-sm font-medium text-[var(--color-ink)] mb-3">
                       난이도 선택
                     </label>
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {(['중학생', '고1', '고2', '고3'] as const).map((level) => (
                         <button
                           key={level}
@@ -594,7 +720,7 @@ export default function WorkflowPage() {
                   {/* Generate Button */}
                   <button
                     onClick={handleGenerateArticle}
-                    disabled={isGeneratingArticle || !keywords.trim()}
+                    disabled={isGeneratingArticle || !keywords.trim() || (isDemoMode && !user && !demoUsage?.canUse)}
                     className="w-full btn-spark py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     {isGeneratingArticle ? (
@@ -605,13 +731,42 @@ export default function WorkflowPage() {
                         </svg>
                         아티클 생성 중...
                       </span>
-                    ) : (
+                    ) : user ? (
                       <span className="flex items-center justify-center gap-3">
                         아티클 생성하기
                         <CoinCost amount={COIN_COSTS.GENERATE_ARTICLE} />
                       </span>
+                    ) : isDemoMode ? (
+                      <span className="flex items-center justify-center gap-3">
+                        아티클 생성하기
+                        <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                          데모 {demoUsage?.remaining ?? 0}회 남음
+                        </span>
+                      </span>
+                    ) : (
+                      <span>로그인 필요</span>
                     )}
                   </button>
+
+                  {/* Demo mode notice */}
+                  {isDemoMode && !user && (
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <svg className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="text-sm">
+                          <p className="font-medium text-amber-700 mb-1">데모 모드로 체험 중</p>
+                          <p className="text-amber-600">
+                            {demoUsage?.remaining ?? 0}회의 무료 체험 기회가 남았습니다.
+                            <Link href="/login" className="ml-1 underline font-medium hover:text-amber-800">
+                              로그인하면 더 많은 문제를 생성할 수 있어요!
+                            </Link>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -793,7 +948,7 @@ export default function WorkflowPage() {
 
                 <button
                   onClick={handleGenerateQuestion}
-                  disabled={isGeneratingQuestion || selectedQuestionTypes.length === 0}
+                  disabled={isGeneratingQuestion || selectedQuestionTypes.length === 0 || (isDemoMode && !user && !demoUsage?.canUse)}
                   className="w-full bg-gradient-to-r from-[var(--color-mint)] to-[var(--color-spark)] text-white py-4 rounded-full font-semibold text-lg hover:shadow-lg hover:shadow-[var(--color-mint)]/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
                 >
                   {isGeneratingQuestion ? (
@@ -806,7 +961,7 @@ export default function WorkflowPage() {
                         ? `문제 생성 중... (${generationProgress.current}/${generationProgress.total})`
                         : '문제 생성 중...'}
                     </span>
-                  ) : (
+                  ) : user ? (
                     <span className="flex items-center justify-center gap-3">
                       {selectedQuestionTypes.length > 0
                         ? `${selectedQuestionTypes.length}개 문제 생성하기`
@@ -815,8 +970,28 @@ export default function WorkflowPage() {
                         <CoinCost amount={selectedQuestionTypes.length * COIN_COSTS.GENERATE_QUESTION} />
                       )}
                     </span>
+                  ) : isDemoMode ? (
+                    <span className="flex items-center justify-center gap-3">
+                      {selectedQuestionTypes.length > 0
+                        ? `${selectedQuestionTypes.length}개 문제 생성하기`
+                        : '문제 유형을 선택하세요'}
+                      {selectedQuestionTypes.length > 0 && (
+                        <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                          데모 {demoUsage?.remaining ?? 0}회 남음
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <span>로그인 필요</span>
                   )}
                 </button>
+
+                {/* Demo mode warning for question generation */}
+                {isDemoMode && !user && selectedQuestionTypes.length > (demoUsage?.remaining ?? 0) && (
+                  <p className="text-sm text-amber-600 mt-2 text-center">
+                    데모 모드에서는 {demoUsage?.remaining ?? 0}개까지만 생성할 수 있습니다.
+                  </p>
+                )}
 
                 {/* Question Generation Progress & Skeleton */}
                 {isGeneratingQuestion && generationProgress && (
@@ -846,9 +1021,15 @@ export default function WorkflowPage() {
                       생성된 문제 ({generatedQuestions.length}개)
                     </h2>
                     <div className="flex items-center gap-3 flex-wrap">
-                      <span className="text-sm text-[var(--color-text-muted)]">
-                        {savedIndexes.size}/{generatedQuestions.length} 저장됨
-                      </span>
+                      {user ? (
+                        <span className="text-sm text-[var(--color-text-muted)]">
+                          {savedIndexes.size}/{generatedQuestions.length} 저장됨
+                        </span>
+                      ) : (
+                        <span className="text-sm text-amber-600">
+                          로그인하면 저장 가능
+                        </span>
+                      )}
                       <PDFExportButton
                         variant="button"
                         questions={generatedQuestions.map(({ type, question }) => ({
@@ -863,31 +1044,43 @@ export default function WorkflowPage() {
                         }))}
                         title={`ENG-SPARKLING - ${generatedArticle.title}`}
                       />
-                      <button
-                        onClick={handleSaveAllToArchive}
-                        disabled={savedIndexes.size === generatedQuestions.length}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer ${
-                          savedIndexes.size === generatedQuestions.length
-                            ? 'bg-[var(--color-mint)]/20 text-[var(--color-mint)] cursor-default'
-                            : 'bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] hover:bg-[var(--color-spark)]/20'
-                        }`}
-                      >
-                        {savedIndexes.size === generatedQuestions.length ? (
-                          <>
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                            전체 저장됨
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                            </svg>
-                            전체 저장
-                          </>
-                        )}
-                      </button>
+                      {user ? (
+                        <button
+                          onClick={handleSaveAllToArchive}
+                          disabled={savedIndexes.size === generatedQuestions.length}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer ${
+                            savedIndexes.size === generatedQuestions.length
+                              ? 'bg-[var(--color-mint)]/20 text-[var(--color-mint)] cursor-default'
+                              : 'bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] hover:bg-[var(--color-spark)]/20'
+                          }`}
+                        >
+                          {savedIndexes.size === generatedQuestions.length ? (
+                            <>
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                              전체 저장됨
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                              </svg>
+                              전체 저장
+                            </>
+                          )}
+                        </button>
+                      ) : (
+                        <Link
+                          href="/login"
+                          className="px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 bg-amber-100 text-amber-700 hover:bg-amber-200"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                          </svg>
+                          로그인하여 저장
+                        </Link>
+                      )}
                       <button
                         onClick={handleReset}
                         className="px-4 py-2 bg-[var(--color-cream-dark)] text-[var(--color-text)] rounded-full text-sm font-medium hover:bg-[var(--color-ink)]/10 transition-colors cursor-pointer"
@@ -917,31 +1110,37 @@ export default function WorkflowPage() {
                             {question.question}
                           </h3>
                         </div>
-                        <button
-                          onClick={() => handleSaveQuestion(qIndex)}
-                          disabled={savedIndexes.has(qIndex)}
-                          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
-                            savedIndexes.has(qIndex)
-                              ? 'bg-[var(--color-mint)]/20 text-[var(--color-mint)] cursor-default'
-                              : 'bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] hover:bg-[var(--color-spark)]/20'
-                          }`}
-                        >
-                          {savedIndexes.has(qIndex) ? (
-                            <>
-                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                              저장됨
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                              </svg>
-                              저장
-                            </>
-                          )}
-                        </button>
+                        {user ? (
+                          <button
+                            onClick={() => handleSaveQuestion(qIndex)}
+                            disabled={savedIndexes.has(qIndex)}
+                            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+                              savedIndexes.has(qIndex)
+                                ? 'bg-[var(--color-mint)]/20 text-[var(--color-mint)] cursor-default'
+                                : 'bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] hover:bg-[var(--color-spark)]/20'
+                            }`}
+                          >
+                            {savedIndexes.has(qIndex) ? (
+                              <>
+                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                                저장됨
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                                </svg>
+                                저장
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <span className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-400">
+                            로그인 필요
+                          </span>
+                        )}
                       </div>
 
                       {/* Passage */}
