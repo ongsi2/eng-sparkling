@@ -1178,7 +1178,12 @@ export default function WorkflowPage() {
                           </svg>
                           해설
                         </h4>
-                        <p className="text-white/90 leading-relaxed">{question.explanation}</p>
+                        <p
+                          className="text-white/90 leading-relaxed"
+                          dangerouslySetInnerHTML={{
+                            __html: question.explanation.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>')
+                          }}
+                        />
                       </div>
                     </div>
                   </div>

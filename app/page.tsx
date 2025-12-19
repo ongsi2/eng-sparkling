@@ -233,12 +233,20 @@ export default function Home() {
                 </svg>
               </Link>
             ) : (
-              <Link href="/login" className="btn-spark">
-                무료로 시작하기
-                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </Link>
+              <>
+                <Link href="/login" className="btn-spark">
+                  무료로 시작하기
+                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+                <Link
+                  href="/workflow"
+                  className="px-6 py-3 border-2 border-[var(--color-spark)]/30 text-[var(--color-spark-deep)] rounded-full font-semibold hover:bg-[var(--color-spark)]/5 transition-all"
+                >
+                  로그인 없이 체험 (3회 무료)
+                </Link>
+              </>
             )}
           </div>
         </div>
@@ -553,13 +561,13 @@ export default function Home() {
               </span>
             </div>
             <div className="flex items-center gap-8 text-sm text-[var(--color-text-muted)]">
-              <a href="#" className="hover:text-[var(--color-spark)] transition-colors">이용약관</a>
-              <a href="#" className="hover:text-[var(--color-spark)] transition-colors">개인정보처리방침</a>
-              <a href="#" className="hover:text-[var(--color-spark)] transition-colors">문의하기</a>
+              <a href="/terms" className="hover:text-[var(--color-spark)] transition-colors">이용약관</a>
+              <a href="/privacy" className="hover:text-[var(--color-spark)] transition-colors">개인정보처리방침</a>
+              <a href="mailto:support@eng-sparkling.com" className="hover:text-[var(--color-spark)] transition-colors">문의하기</a>
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-[var(--color-spark)]/10 text-center text-sm text-[var(--color-text-light)]">
-            <p>© 2024 ENG-SPARKLING. AI-powered English Question Generator.</p>
+            <p>© 2025 ENG-SPARKLING. AI-powered English Question Generator.</p>
           </div>
         </div>
       </footer>

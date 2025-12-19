@@ -20,6 +20,23 @@
 
 ### 🔧 최근 수정 (2025-12-19)
 
+#### 빠른 개선 4가지
+- **해설 줄바꿈**: `workflow/page.tsx:1181` - `\n\n`을 `<br><br>`로 변환
+- **저작권 연도**: `app/page.tsx:562` - 2024 → 2025
+- **Footer 링크**: 이용약관(`/terms`), 개인정보(`/privacy`), 문의(`mailto:`)
+- **데모 버튼**: 비로그인시 "로그인 없이 체험 (3회 무료)" 버튼 추가
+
+#### 문제 생성 전용 Subagent 추가
+- **추가 파일**:
+  - `.claude/commands/question-gen.md` - 문제 생성 전문 에이전트
+  - `scripts/validate-prompts.ts` - 프롬프트 검증 스크립트
+  - `scripts/test-question-generation.ts` - API 테스트 스크립트
+- **사용법**:
+  - `/question-gen 분석 GRAMMAR_INCORRECT` - 특정 유형 분석
+  - `/question-gen 개선 PICK_UNDERLINE` - 프롬프트 개선
+  - `npm run validate:prompts` - 프롬프트 품질 검증
+  - `npm run test:questions` - API 테스트
+
 #### 밑줄 렌더링 수정
 - **문제**: 문법형에서 "밑줄 친 부분"이라는데 밑줄이 없었음
 - **수정 파일**:
