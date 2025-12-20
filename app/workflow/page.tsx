@@ -9,6 +9,7 @@ import { deductCoinsFromDB, hasEnoughCoinsInDB, COIN_COSTS } from '@/lib/coins';
 import { saveQuestionToArchive } from '@/lib/archive';
 import CoinDisplay, { CoinCost, triggerCoinUpdate } from '@/app/components/CoinDisplay';
 import AuthButton from '@/app/components/AuthButton';
+import UserAvatar from '@/app/components/UserAvatar';
 import { useAuth } from '@/app/components/AuthProvider';
 import { ArticleSkeleton, QuestionSkeleton, ProgressBar } from '@/app/components/Skeleton';
 import { PDFExportButton } from '@/app/components/PDFExportButton';
@@ -139,6 +140,9 @@ export default function WorkflowPage() {
 
   // Archive state - track individually saved questions by index
   const [savedIndexes, setSavedIndexes] = useState<Set<number>>(new Set());
+
+  // User dropdown menu state
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   // Toggle question type selection
   const toggleQuestionType = (type: QuestionType) => {
@@ -330,18 +334,39 @@ export default function WorkflowPage() {
     }
 
     setGeneratedQuestions(results);
-    setSavedIndexes(new Set());
     setIsGeneratingQuestion(false);
     setGenerationProgress(null);
 
     if (successCount === 0) {
       toast.error('문제 생성에 실패했습니다.');
-    } else if (successCount < selectedQuestionTypes.length) {
-      toast(`${selectedQuestionTypes.length}개 중 ${successCount}개 문제가 생성되었습니다.`, {
-        icon: '⚠️',
-      });
+      setSavedIndexes(new Set());
     } else {
-      toast.success(`${successCount}개 문제가 생성되었습니다!`);
+      // 로그인 사용자는 자동 저장
+      if (user && generatedArticle && results.length > 0) {
+        const autoSavedIndexes = new Set<number>();
+        for (let i = 0; i < results.length; i++) {
+          const { type, question } = results[i];
+          const saved = await saveQuestionToArchive(user.id, type, question, generatedArticle);
+          if (saved) {
+            autoSavedIndexes.add(i);
+          }
+        }
+        setSavedIndexes(autoSavedIndexes);
+
+        if (successCount < selectedQuestionTypes.length) {
+          toast(`${successCount}개 문제 생성 및 자동 저장됨`, { icon: '⚠️' });
+        } else {
+          toast.success(`${successCount}개 문제가 생성되고 자동 저장되었습니다!`);
+        }
+      } else {
+        // 비로그인 사용자
+        setSavedIndexes(new Set());
+        if (successCount < selectedQuestionTypes.length) {
+          toast(`${selectedQuestionTypes.length}개 중 ${successCount}개 문제가 생성되었습니다.`, { icon: '⚠️' });
+        } else {
+          toast.success(`${successCount}개 문제가 생성되었습니다!`);
+        }
+      }
     }
   };
 
@@ -513,35 +538,67 @@ export default function WorkflowPage() {
           <div className="flex items-center gap-2 md:gap-3">
             {user ? (
               <>
-                {/* 저장함 버튼 - 모바일에서는 하단 nav 사용 */}
-                <Link
-                  href="/archive"
-                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] hover:bg-[var(--color-spark)]/5 transition-all"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                  </svg>
-                  저장함
-                </Link>
-
-                {/* 구분선 - 모바일에서 숨김 */}
-                <div className="hidden md:block h-5 w-px bg-[var(--color-ink)]/10" />
-
                 {/* 코인 영역 */}
                 <CoinDisplay />
-                {/* 충전 버튼 - 데스크톱만 */}
-                <Link
-                  href="/payment"
-                  className="hidden sm:block px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full transition-colors"
-                >
-                  충전
-                </Link>
 
-                {/* 구분선 */}
-                <div className="h-5 w-px bg-[var(--color-ink)]/10" />
+                {/* 사용자 드롭다운 메뉴 */}
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-cream-dark)]/50 transition-colors cursor-pointer"
+                  >
+                    <UserAvatar user={user} size="md" />
+                    <svg className={`hidden md:block w-4 h-4 text-[var(--color-text-muted)] transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
 
-                {/* 사용자 영역 */}
-                <AuthButton />
+                  {/* 드롭다운 메뉴 */}
+                  {userMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-[var(--color-cream-dark)] py-2 z-50">
+                        <div className="px-4 py-2 border-b border-[var(--color-cream-dark)]">
+                          <p className="text-xs text-[var(--color-text-muted)]">로그인 계정</p>
+                          <p className="text-sm font-medium text-[var(--color-ink)] truncate">{user.email}</p>
+                        </div>
+                        <Link
+                          href="/archive"
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--color-ink)] hover:bg-[var(--color-cream)] transition-colors cursor-pointer"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <svg className="w-4 h-4 text-[var(--color-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                          </svg>
+                          저장함
+                        </Link>
+                        <Link
+                          href="/credit-history"
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--color-ink)] hover:bg-[var(--color-cream)] transition-colors cursor-pointer"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <svg className="w-4 h-4 text-[var(--color-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                          크레딧 내역
+                        </Link>
+                        <Link
+                          href="/payment"
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--color-ink)] hover:bg-[var(--color-cream)] transition-colors cursor-pointer"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <svg className="w-4 h-4 text-[var(--color-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          코인 충전
+                        </Link>
+                        <div className="border-t border-[var(--color-cream-dark)] mt-2 pt-2">
+                          <AuthButton compact onAction={() => setUserMenuOpen(false)} />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </>
             ) : isDemoMode ? (
               <>
@@ -1022,12 +1079,15 @@ export default function WorkflowPage() {
                     </h2>
                     <div className="flex items-center gap-3 flex-wrap">
                       {user ? (
-                        <span className="text-sm text-[var(--color-text-muted)]">
-                          {savedIndexes.size}/{generatedQuestions.length} 저장됨
+                        <span className="text-sm text-[var(--color-mint)] flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          {savedIndexes.size === generatedQuestions.length ? '자동 저장됨' : `${savedIndexes.size}/${generatedQuestions.length} 저장됨`}
                         </span>
                       ) : (
                         <span className="text-sm text-amber-600">
-                          로그인하면 저장 가능
+                          로그인하면 자동 저장
                         </span>
                       )}
                       {user && (
@@ -1061,14 +1121,14 @@ export default function WorkflowPage() {
                               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                               </svg>
-                              전체 저장됨
+                              자동 저장됨
                             </>
                           ) : (
                             <>
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                               </svg>
-                              전체 저장
+                              저장하기
                             </>
                           )}
                         </button>
@@ -1117,14 +1177,14 @@ export default function WorkflowPage() {
                                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                 </svg>
-                                저장됨
+                                저장완료
                               </>
                             ) : (
                               <>
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                                 </svg>
-                                저장
+                                저장하기
                               </>
                             )}
                           </button>

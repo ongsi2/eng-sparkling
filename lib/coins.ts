@@ -31,68 +31,83 @@ export async function getCoinsFromDB(userId: string): Promise<number> {
     .from('profiles')
     .select('coins')
     .eq('id', userId)
-    .single();
+    .maybeSingle();  // single() 대신 maybeSingle() 사용 - 없어도 에러 안 남
 
   if (error) {
-    console.error('Error fetching coins:', error);
+    console.error('Error fetching coins:', JSON.stringify(error, null, 2));
+    console.error('User ID:', userId);
     return 0;
   }
 
-  return data?.coins ?? INITIAL_COINS;
+  // 프로필이 없으면 기본 코인 반환
+  if (!data) {
+    console.log('No profile found for user:', userId);
+    return INITIAL_COINS;
+  }
+
+  return data.coins ?? INITIAL_COINS;
 }
 
 /**
- * Deduct coins in DB
+ * Deduct coins in DB with usage history recording
  * Returns new balance if successful, null if insufficient
  */
-export async function deductCoinsFromDB(userId: string, amount: number): Promise<number | null> {
-  // First get current balance
-  const currentBalance = await getCoinsFromDB(userId);
-
-  if (currentBalance < amount) {
-    return null; // Insufficient balance
-  }
-
-  const newBalance = currentBalance - amount;
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      coins: newBalance,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', userId);
+export async function deductCoinsFromDB(
+  userId: string,
+  amount: number,
+  referenceId?: string,
+  description?: string
+): Promise<number | null> {
+  // Use the record_credit_usage function for atomic operation
+  const { data, error } = await supabase
+    .rpc('record_credit_usage', {
+      p_user_id: userId,
+      p_amount: -amount,  // 사용은 음수
+      p_type: 'usage',
+      p_reference_id: referenceId || null,
+      p_description: description || '문제 생성'
+    });
 
   if (error) {
+    if (error.message === 'Insufficient balance') {
+      return null; // 잔액 부족
+    }
     console.error('Error deducting coins:', error);
     return null;
   }
 
-  return newBalance;
+  // 새 잔액 조회
+  return await getCoinsFromDB(userId);
 }
 
 /**
- * Add coins in DB
+ * Add coins in DB with usage history recording
  * Returns new balance
  */
-export async function addCoinsToDb(userId: string, amount: number): Promise<number | null> {
-  const currentBalance = await getCoinsFromDB(userId);
-  const newBalance = currentBalance + amount;
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      coins: newBalance,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', userId);
+export async function addCoinsToDb(
+  userId: string,
+  amount: number,
+  type: 'purchase' | 'bonus' | 'refund' | 'admin_add' = 'purchase',
+  referenceId?: string,
+  description?: string
+): Promise<number | null> {
+  // Use the record_credit_usage function for atomic operation
+  const { data, error } = await supabase
+    .rpc('record_credit_usage', {
+      p_user_id: userId,
+      p_amount: amount,  // 충전은 양수
+      p_type: type,
+      p_reference_id: referenceId || null,
+      p_description: description || (type === 'purchase' ? '코인 구매' : '코인 충전')
+    });
 
   if (error) {
     console.error('Error adding coins:', error);
     return null;
   }
 
-  return newBalance;
+  // 새 잔액 조회
+  return await getCoinsFromDB(userId);
 }
 
 /**
@@ -101,6 +116,53 @@ export async function addCoinsToDb(userId: string, amount: number): Promise<numb
 export async function hasEnoughCoinsInDB(userId: string, amount: number): Promise<boolean> {
   const balance = await getCoinsFromDB(userId);
   return balance >= amount;
+}
+
+// ============================================
+// Credit Usage History Functions
+// ============================================
+
+export interface CreditHistoryItem {
+  id: string;
+  amount: number;
+  balance_after: number;
+  transaction_type: 'purchase' | 'usage' | 'bonus' | 'refund' | 'admin_add';
+  reference_id: string | null;
+  description: string | null;
+  created_at: string;
+}
+
+/**
+ * Get credit usage history for a user
+ */
+export async function getCreditHistory(
+  userId: string,
+  limit: number = 50,
+  offset: number = 0
+): Promise<{ data: CreditHistoryItem[]; total: number }> {
+  // Get total count
+  const { count } = await supabase
+    .from('credit_usage_history')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  // Get paginated data
+  const { data, error } = await supabase
+    .from('credit_usage_history')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    console.error('Error fetching credit history:', error);
+    return { data: [], total: 0 };
+  }
+
+  return {
+    data: data as CreditHistoryItem[],
+    total: count || 0
+  };
 }
 
 // ============================================

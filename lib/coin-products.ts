@@ -10,34 +10,37 @@ export interface CoinProduct {
   price: number;      // KRW
   popular?: boolean;  // Featured product badge
   bonus?: number;     // Bonus coins (e.g., 10% extra)
+  active?: boolean;
+  sort_order?: number;
 }
 
+// Fallback products (DB 조회 실패 시 사용)
 export const COIN_PRODUCTS: CoinProduct[] = [
   {
     id: 'coins_10',
     name: '10 코인',
     coins: 10,
-    price: 1000,      // 100원/코인
+    price: 1000,
   },
   {
     id: 'coins_50',
     name: '50 코인',
     coins: 50,
-    price: 4000,      // 80원/코인
+    price: 4000,
     popular: true,
-    bonus: 5,         // +5 보너스
+    bonus: 5,
   },
   {
     id: 'coins_100',
     name: '100 코인',
     coins: 100,
-    price: 7000,      // 70원/코인
-    bonus: 15,        // +15 보너스
+    price: 7000,
+    bonus: 15,
   },
 ];
 
 /**
- * Get product by ID
+ * Get product by ID (하드코딩된 fallback)
  */
 export function getProductById(productId: string): CoinProduct | undefined {
   return COIN_PRODUCTS.find(p => p.id === productId);

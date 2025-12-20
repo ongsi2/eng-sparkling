@@ -10,6 +10,9 @@ import { createPrompt } from '@/lib/all-prompts';
 import { GeneratedQuestion, GenerateQuestionRequest } from '@/types';
 import { checkRateLimit, getClientIP, API_RATE_LIMITS } from '@/lib/rate-limit';
 import { getDemoUsageFromRequest, incrementDemoUsage, getClientIP as getDemoClientIP } from '@/lib/demo';
+import { getUserFromRequest } from '@/lib/admin';
+import { logGenerate } from '@/lib/activity-logger';
+import { getFromCache, saveToCache } from '@/lib/generation-cache';
 
 // Types that require all 5 markers (①②③④⑤)
 const MARKER_REQUIRED_TYPES = ['GRAMMAR_INCORRECT', 'SELECT_INCORRECT_WORD'];
@@ -39,32 +42,52 @@ function validateMarkers(modifiedPassage: string, questionType: string): { valid
 }
 
 /**
+ * 한국어 번역 제거 (예: "contains(포함하다)" -> "contains")
+ */
+function stripKorean(word: string): string {
+  // Remove Korean text in parentheses
+  return word.replace(/\([가-힣]+\)/g, '').trim();
+}
+
+interface BuildResult {
+  modifiedPassage: string;
+  newAnswerIndex: number;  // 1-5 (정렬 후 오답의 새 위치)
+  sortedMarkers: GrammarMarker[];  // 정렬된 마커 배열
+}
+
+/**
  * Build modifiedPassage from markers array (for GRAMMAR_INCORRECT and SELECT_INCORRECT_WORD)
  * This approach is more reliable than asking AI to insert markers directly
+ *
+ * 핵심 개선: 마커를 지문 순서대로 정렬하여 ①②③④⑤가 읽기 순서대로 배치되도록 함
  */
-function buildModifiedPassageFromMarkers(passage: string, markers: GrammarMarker[], questionType: string): string {
+function buildModifiedPassageFromMarkers(passage: string, markers: GrammarMarker[], questionType: string): BuildResult {
   if (!markers || markers.length !== 5) {
     throw new Error('Markers array must have exactly 5 items');
   }
 
-  let modifiedPassage = passage;
-  const markerSymbols = ['①', '②', '③', '④', '⑤'];
-  const usedPositions: number[] = [];
-  // 문법형과 틀린 단어 선택형 모두 밑줄 필요
   const useUnderline = questionType === 'SELECT_INCORRECT_WORD' || questionType === 'GRAMMAR_INCORRECT';
 
-  // Process markers in order, tracking used positions
+  // Step 1: 각 마커의 위치 찾기
+  interface MarkerWithPosition {
+    marker: GrammarMarker;
+    originalIndex: number;
+    position: number;
+    foundWord: string;
+  }
+
+  const markersWithPositions: MarkerWithPosition[] = [];
+  const usedPositions: number[] = [];
+
   for (let i = 0; i < markers.length; i++) {
     const marker = markers[i];
-    const symbol = markerSymbols[i];
 
-    // For SELECT_INCORRECT_WORD: search for originalWord (word in original passage)
-    // For GRAMMAR_INCORRECT: search for originalWord or correctWord
+    // 한국어 제거하고 검색어 목록 만들기
     const searchWords = [
-      marker.originalWord,  // Primary: the word that exists in original passage
-      marker.isWrong ? marker.correctWord : null,  // Fallback for wrong markers
-      marker.displayWord,  // Last resort
-    ].filter(Boolean) as string[];
+      stripKorean(marker.originalWord || ''),
+      stripKorean(marker.isWrong ? (marker.correctWord || '') : ''),
+      stripKorean(marker.displayWord || ''),
+    ].filter(w => w.length > 0);
 
     let foundPos = -1;
     let foundWord = '';
@@ -72,79 +95,109 @@ function buildModifiedPassageFromMarkers(passage: string, markers: GrammarMarker
     for (const searchWord of searchWords) {
       if (foundPos >= 0) break;
 
-      // Try exact match first
       const exactRegex = new RegExp(`\\b${escapeRegExp(searchWord)}\\b`, 'gi');
       let match;
 
-      while ((match = exactRegex.exec(modifiedPassage)) !== null) {
+      while ((match = exactRegex.exec(passage)) !== null) {
         const pos = match.index;
-        // Check if this position overlaps with already used positions
-        const overlaps = usedPositions.some(usedPos =>
-          Math.abs(pos - usedPos) < 20
-        );
+        const overlaps = usedPositions.some(usedPos => Math.abs(pos - usedPos) < 20);
         if (!overlaps) {
           foundPos = pos;
-          foundWord = searchWord;
+          foundWord = match[0]; // 실제 매칭된 단어 사용
           break;
-        }
-      }
-
-      // If not found, try case-insensitive partial match
-      if (foundPos === -1) {
-        const partialRegex = new RegExp(escapeRegExp(searchWord), 'gi');
-        while ((match = partialRegex.exec(modifiedPassage)) !== null) {
-          const pos = match.index;
-          const overlaps = usedPositions.some(usedPos =>
-            Math.abs(pos - usedPos) < 20
-          );
-          if (!overlaps) {
-            foundPos = pos;
-            foundWord = searchWord;
-            break;
-          }
         }
       }
     }
 
-    if (foundPos >= 0 && foundWord) {
+    if (foundPos >= 0) {
       usedPositions.push(foundPos);
-      // Replace at this position
-      const before = modifiedPassage.substring(0, foundPos);
-      const after = modifiedPassage.substring(foundPos);
-      const replaceRegex = new RegExp(escapeRegExp(foundWord), 'i');
-      // Add underline for SELECT_INCORRECT_WORD type
-      // 숫자가 밑줄 앞에 와야 함: ①<u>단어</u>
-      const replacement = useUnderline
-        ? `${symbol}<u>${marker.displayWord}</u>`
-        : `${marker.displayWord}${symbol}`;
-      modifiedPassage = before + after.replace(replaceRegex, replacement);
+      markersWithPositions.push({
+        marker,
+        originalIndex: i,
+        position: foundPos,
+        foundWord,
+      });
     } else {
-      // Fallback: find any suitable word near expected position
-      console.warn(`Marker ${i + 1}: Could not find "${marker.displayWord}", using fallback`);
+      console.warn(`Marker ${i + 1}: Could not find words for marker, will use fallback`);
+      // 나중에 fallback 처리
+      markersWithPositions.push({
+        marker,
+        originalIndex: i,
+        position: -1,
+        foundWord: '',
+      });
+    }
+  }
 
-      // Find a word in the passage that hasn't been used
-      const words = modifiedPassage.match(/\b[a-zA-Z]{4,}\b/g) || [];
-      const targetIndex = Math.floor((i / 5) * words.length);
+  // Step 2: 위치순으로 정렬 (지문에서 먼저 나오는 순서)
+  const sortedMarkers = [...markersWithPositions].sort((a, b) => {
+    if (a.position === -1) return 1;
+    if (b.position === -1) return -1;
+    return a.position - b.position;
+  });
 
-      for (let j = targetIndex; j < words.length; j++) {
-        const word = words[j];
-        const wordPos = modifiedPassage.indexOf(word);
-        const overlaps = usedPositions.some(usedPos => Math.abs(wordPos - usedPos) < 20);
+  // Step 3: 정렬된 순서대로 ①②③④⑤ 할당하여 교체
+  const markerSymbols = ['①', '②', '③', '④', '⑤'];
+  let modifiedPassage = passage;
 
-        if (!overlaps && wordPos >= 0) {
-          usedPositions.push(wordPos);
-          // Insert marker after this word
-          modifiedPassage = modifiedPassage.replace(
-            new RegExp(`\\b${escapeRegExp(word)}\\b`),
-            `${word}${symbol}`
-          );
+  // 뒤에서부터 교체해야 위치가 밀리지 않음
+  const sortedByPosDesc = [...sortedMarkers]
+    .map((m, sortedIndex) => ({ ...m, symbol: markerSymbols[sortedIndex] }))
+    .filter(m => m.position >= 0)
+    .sort((a, b) => b.position - a.position);
+
+  for (const item of sortedByPosDesc) {
+    const displayWord = stripKorean(item.marker.displayWord || item.foundWord);
+    const replaceRegex = new RegExp(`\\b${escapeRegExp(item.foundWord)}\\b`, 'i');
+
+    const replacement = useUnderline
+      ? `${item.symbol}<u>${displayWord}</u>`
+      : `${displayWord}${item.symbol}`;
+
+    modifiedPassage = modifiedPassage.replace(replaceRegex, replacement);
+  }
+
+  // Step 4: 찾지 못한 마커들 fallback 처리
+  const usedSymbols = sortedByPosDesc.map(m => m.symbol);
+  const remainingSymbols = markerSymbols.filter(s => !usedSymbols.includes(s));
+
+  if (remainingSymbols.length > 0) {
+    const words = modifiedPassage.match(/\b[a-zA-Z]{4,}\b/g) || [];
+    const usedWords = new Set(sortedByPosDesc.map(m => m.foundWord.toLowerCase()));
+
+    for (const symbol of remainingSymbols) {
+      for (const word of words) {
+        if (!usedWords.has(word.toLowerCase()) && !modifiedPassage.includes(`${symbol}<u>`)) {
+          usedWords.add(word.toLowerCase());
+          const replacement = useUnderline ? `${symbol}<u>${word}</u>` : `${word}${symbol}`;
+          modifiedPassage = modifiedPassage.replace(new RegExp(`\\b${escapeRegExp(word)}\\b`), replacement);
+          console.warn(`Fallback: assigned ${symbol} to "${word}"`);
           break;
         }
       }
     }
   }
 
-  return modifiedPassage;
+  // Step 5: 오답 마커의 새 위치 찾기
+  let newAnswerIndex = 1;
+  for (let i = 0; i < sortedMarkers.length; i++) {
+    if (sortedMarkers[i].marker.isWrong) {
+      newAnswerIndex = i + 1;  // 1-indexed
+      break;
+    }
+  }
+
+  // 정렬된 마커 배열 (displayWord에서 한국어 제거)
+  const cleanedSortedMarkers = sortedMarkers.map(m => ({
+    ...m.marker,
+    displayWord: stripKorean(m.marker.displayWord || ''),
+  }));
+
+  return {
+    modifiedPassage,
+    newAnswerIndex,
+    sortedMarkers: cleanedSortedMarkers,
+  };
 }
 
 function escapeRegExp(string: string): string {
@@ -212,6 +265,34 @@ export async function POST(request: NextRequest) {
         { error: 'Passage is too long. Maximum 2000 characters allowed.' },
         { status: 400 }
       );
+    }
+
+    // 캐시 입력 데이터 (지문은 공백 정규화)
+    const normalizedPassage = passage.trim().replace(/\s+/g, ' ');
+    const cacheInput = {
+      passage: normalizedPassage,
+      questionType,
+    };
+
+    // 캐시에서 먼저 확인
+    const cacheResult = await getFromCache<GeneratedQuestion>('question', cacheInput);
+    if (cacheResult.hit) {
+      // Demo mode: 캐시 히트도 사용 횟수에 포함
+      if (demo) {
+        const ip = getDemoClientIP(request);
+        await incrementDemoUsage(ip);
+      }
+
+      // 활동 로그 (캐시에서)
+      const user = await getUserFromRequest(request);
+      if (user) {
+        logGenerate(user.id, questionType, request, true).catch(() => {});
+      }
+
+      return NextResponse.json({
+        ...cacheResult.data,
+        cached: true, // 클라이언트에게 캐시된 결과임을 알림
+      });
     }
 
     // Create prompt based on question type
@@ -301,7 +382,10 @@ export async function POST(request: NextRequest) {
 
           // Build modifiedPassage from markers
           try {
-            parsed.modifiedPassage = buildModifiedPassageFromMarkers(passage, parsed.markers, questionType);
+            const buildResult = buildModifiedPassageFromMarkers(passage, parsed.markers, questionType);
+            parsed.modifiedPassage = buildResult.modifiedPassage;
+            parsed.answer = buildResult.newAnswerIndex;  // 정렬된 순서 기준 정답
+            parsed.markers = buildResult.sortedMarkers;  // 정렬된 마커로 교체
           } catch (markerError: any) {
             console.warn(`Attempt ${attempt}: Failed to build passage: ${markerError.message}`);
             if (attempt < MAX_RETRIES) {
@@ -315,7 +399,7 @@ export async function POST(request: NextRequest) {
             // For grammar, choices are marker symbols
             parsed.choices = ['①', '②', '③', '④', '⑤'];
           } else if (questionType === 'SELECT_INCORRECT_WORD') {
-            // For vocabulary, choices are the displayWords
+            // For vocabulary, choices are the displayWords (정렬된 순서)
             parsed.choices = parsed.markers.map((m: GrammarMarker) => m.displayWord);
           }
 
@@ -383,6 +467,19 @@ export async function POST(request: NextRequest) {
       sentenceToInsert: parsed.sentenceToInsert,
       createdAt: new Date().toISOString(),
     };
+
+    // Log activity for logged-in users (non-blocking)
+    if (!demo) {
+      const user = await getUserFromRequest(request);
+      if (user) {
+        logGenerate(request, user.id, questionType, true).catch(err => {
+          console.error('Failed to log generate activity:', err);
+        });
+      }
+    }
+
+    // 캐시에 저장 (비동기, 에러 무시)
+    saveToCache('question', cacheInput, result).catch(() => {});
 
     return NextResponse.json(result);
   } catch (error: any) {

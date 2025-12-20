@@ -6,7 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { getProductById, getTotalCoins } from '@/lib/coin-products';
+import { getTotalCoins } from '@/lib/coin-products';
+import { getProductByIdFromDB } from '@/lib/coin-products-server';
 import { checkRateLimit, getClientIP, API_RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
@@ -35,8 +36,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get product info
-    const product = getProductById(productId);
+    // Get product info from DB
+    const product = await getProductByIdFromDB(productId);
     if (!product) {
       return NextResponse.json(
         { error: 'Invalid product ID' },

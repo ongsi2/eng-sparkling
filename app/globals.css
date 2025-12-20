@@ -80,6 +80,25 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Interactive elements - cursor pointer */
+button,
+[role="button"],
+a[href],
+select,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="checkbox"],
+input[type="radio"],
+.cursor-pointer {
+  cursor: pointer;
+}
+
+button:disabled,
+[disabled] {
+  cursor: not-allowed;
+}
+
 body {
   background: var(--color-cream);
   color: var(--color-text);

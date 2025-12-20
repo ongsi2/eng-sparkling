@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import CoinDisplay from '@/app/components/CoinDisplay';
 import AuthButton from '@/app/components/AuthButton';
+import UserAvatar from '@/app/components/UserAvatar';
 import { useAuth } from '@/app/components/AuthProvider';
 import { getArchivedQuestions, deleteArchivedQuestion, ArchivedQuestion } from '@/lib/archive';
 import { PDFExportButton } from '@/app/components/PDFExportButton';
@@ -111,6 +112,16 @@ const SparklingLogo = () => (
   </div>
 );
 
+// 난이도 레이블
+const DIFFICULTY_LABELS: Record<string, string> = {
+  '중학생': '중학생',
+  '고1': '고1',
+  '고2': '고2',
+  '고3': '고3/수능',
+};
+
+const DIFFICULTY_ORDER = ['중학생', '고1', '고2', '고3'];
+
 export default function ArchivePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -118,6 +129,11 @@ export default function ArchivePage() {
   const [selectedItem, setSelectedItem] = useState<ArchivedQuestion | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // 필터 상태
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterDifficulty, setFilterDifficulty] = useState<string>('all');
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   // 로그인 안 했으면 /login으로 리다이렉트
   useEffect(() => {
@@ -168,6 +184,24 @@ export default function ArchivePage() {
     });
   };
 
+  // 필터링된 아카이브
+  const filteredArchive = archive.filter(item => {
+    const typeMatch = filterType === 'all' || item.question_type === filterType;
+    const difficultyMatch = filterDifficulty === 'all' || item.article.difficulty === filterDifficulty;
+    return typeMatch && difficultyMatch;
+  });
+
+  // 사용 가능한 필터 옵션 (데이터에 있는 것만)
+  const availableTypes = [...new Set(archive.map(item => item.question_type))];
+  const availableDifficulties = [...new Set(archive.map(item => item.article.difficulty))]
+    .sort((a, b) => DIFFICULTY_ORDER.indexOf(a) - DIFFICULTY_ORDER.indexOf(b));
+
+  // 필터 초기화
+  const resetFilters = () => {
+    setFilterType('all');
+    setFilterDifficulty('all');
+  };
+
   // 로딩 중이거나 로그인 안 했으면 로딩 화면 표시
   if (loading || !user || isLoading) {
     return (
@@ -189,10 +223,10 @@ export default function ArchivePage() {
             </span>
           </Link>
           <div className="flex items-center gap-2 md:gap-3">
-            {/* 문제 생성 버튼 - 모바일에서는 하단 nav 사용 */}
+            {/* 문제 생성 버튼 - 메인 CTA */}
             <Link
               href="/workflow"
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] hover:bg-[var(--color-spark)]/5 transition-all"
+              className="hidden md:flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-[var(--color-spark)] to-[var(--color-mint)] hover:opacity-90 transition-all shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -205,19 +239,55 @@ export default function ArchivePage() {
 
             {/* 코인 영역 */}
             <CoinDisplay />
-            {/* 충전 버튼 - 데스크톱만 */}
-            <Link
-              href="/payment"
-              className="hidden sm:block px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full transition-colors"
-            >
-              충전
-            </Link>
 
-            {/* 구분선 */}
-            <div className="h-5 w-px bg-[var(--color-ink)]/10" />
+            {/* 사용자 드롭다운 메뉴 */}
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-cream-dark)]/50 transition-colors"
+              >
+                <UserAvatar user={user} size="md" />
+                <svg className={`hidden md:block w-4 h-4 text-[var(--color-text-muted)] transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
 
-            {/* 사용자 영역 */}
-            <AuthButton />
+              {/* 드롭다운 메뉴 */}
+              {userMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-[var(--color-cream-dark)] py-2 z-50">
+                    <div className="px-4 py-2 border-b border-[var(--color-cream-dark)]">
+                      <p className="text-xs text-[var(--color-text-muted)]">로그인 계정</p>
+                      <p className="text-sm font-medium text-[var(--color-ink)] truncate">{user?.email}</p>
+                    </div>
+                    <Link
+                      href="/credit-history"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--color-ink)] hover:bg-[var(--color-cream)] transition-colors"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <svg className="w-4 h-4 text-[var(--color-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      크레딧 내역
+                    </Link>
+                    <Link
+                      href="/payment"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--color-ink)] hover:bg-[var(--color-cream)] transition-colors"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <svg className="w-4 h-4 text-[var(--color-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      코인 충전
+                    </Link>
+                    <div className="border-t border-[var(--color-cream-dark)] mt-2 pt-2">
+                      <AuthButton compact onAction={() => setUserMenuOpen(false)} />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -251,22 +321,110 @@ export default function ArchivePage() {
             </Link>
           </div>
         ) : (
+          <>
+          {/* 필터 섹션 */}
+          <div className="mb-6 p-4 bg-white rounded-xl border border-[var(--color-spark)]/10">
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              {/* 난이도 필터 */}
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-2">난이도</label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setFilterDifficulty('all')}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+                      filterDifficulty === 'all'
+                        ? 'bg-[var(--color-spark)] text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    전체
+                  </button>
+                  {availableDifficulties.map(diff => (
+                    <button
+                      key={diff}
+                      onClick={() => setFilterDifficulty(diff)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+                        filterDifficulty === diff
+                          ? 'bg-[var(--color-spark)] text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {DIFFICULTY_LABELS[diff] || diff}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 문제 유형 필터 */}
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-2">문제 유형</label>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-spark)]/30 focus:border-[var(--color-spark)] cursor-pointer"
+                >
+                  <option value="all">전체 유형</option>
+                  {availableTypes.map(type => (
+                    <option key={type} value={type}>
+                      {QUESTION_TYPE_LABELS[type as QuestionType]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 필터 초기화 */}
+              {(filterType !== 'all' || filterDifficulty !== 'all') && (
+                <button
+                  onClick={resetFilters}
+                  className="px-3 py-2 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-ink)] transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  초기화
+                </button>
+              )}
+            </div>
+
+            {/* 필터 결과 */}
+            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+              <span className="text-sm text-[var(--color-text-muted)]">
+                {filteredArchive.length === archive.length
+                  ? `전체 ${archive.length}개`
+                  : `${archive.length}개 중 ${filteredArchive.length}개 표시`
+                }
+              </span>
+            </div>
+          </div>
           <div className="grid md:grid-cols-3 gap-6">
             {/* Archive List */}
             <div className="md:col-span-1 space-y-3">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-[var(--color-ink)]">
-                  문제 목록 ({archive.length}개)
+                  문제 목록 ({filteredArchive.length}개)
                 </h3>
-                {archive.length > 0 && (
+                {filteredArchive.length > 0 && (
                   <PDFExportButton
-                    questions={archive.map(convertToExportQuestion)}
-                    title="저장된 문제집"
+                    questions={filteredArchive.map(convertToExportQuestion)}
+                    title={filterType !== 'all' || filterDifficulty !== 'all' ? '필터된 문제집' : '저장된 문제집'}
                     variant="button"
                   />
                 )}
               </div>
-              {archive.map((item) => (
+              {filteredArchive.length === 0 ? (
+                <div className="p-6 text-center text-[var(--color-text-muted)] bg-gray-50 rounded-xl">
+                  <svg className="w-10 h-10 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <p className="text-sm">필터 조건에 맞는 문제가 없습니다</p>
+                  <button
+                    onClick={resetFilters}
+                    className="mt-2 text-sm text-[var(--color-spark)] hover:underline cursor-pointer"
+                  >
+                    필터 초기화
+                  </button>
+                </div>
+              ) : filteredArchive.map((item) => (
                 <div
                   key={item.id}
                   onClick={() => {
@@ -281,9 +439,14 @@ export default function ArchivePage() {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <span className="inline-block px-2 py-0.5 text-xs font-medium bg-[var(--color-mint)]/10 text-[var(--color-mint)] rounded-full mb-2">
-                        {QUESTION_TYPE_LABELS[item.question_type as QuestionType]}
-                      </span>
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium bg-[var(--color-mint)]/10 text-[var(--color-mint)] rounded-full">
+                          {QUESTION_TYPE_LABELS[item.question_type as QuestionType]}
+                        </span>
+                        <span className="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-600 rounded-full">
+                          {DIFFICULTY_LABELS[item.article.difficulty] || item.article.difficulty}
+                        </span>
+                      </div>
                       <h4 className="font-medium text-[var(--color-ink)] text-sm truncate">
                         {item.article.title}
                       </h4>
@@ -394,6 +557,7 @@ export default function ArchivePage() {
               )}
             </div>
           </div>
+          </>
         )}
       </div>
     </div>

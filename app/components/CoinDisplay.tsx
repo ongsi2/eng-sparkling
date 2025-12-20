@@ -113,8 +113,10 @@ export default function CoinDisplay({ className = "", showLabel = false, showCha
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <div
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50"
+      <button
+        onClick={() => router.push('/credit-history')}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/50 hover:border-amber-300 hover:shadow-sm transition-all cursor-pointer"
+        title="사용 내역 보기"
       >
         <CoinIcon className="w-5 h-5" />
         <span className={`font-semibold text-sm ${isLow ? 'text-red-600' : 'text-amber-700'}`}>
@@ -123,7 +125,7 @@ export default function CoinDisplay({ className = "", showLabel = false, showCha
         {showLabel && (
           <span className="text-xs text-amber-600/70 ml-0.5">코인</span>
         )}
-      </div>
+      </button>
       {showChargeButton && (
         <button
           onClick={() => router.push('/payment')}

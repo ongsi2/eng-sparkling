@@ -46,22 +46,6 @@ Return a JSON with markers array. Each marker object must have:
 - "originalWord": the original word from the passage (only needed if isWrong is true)
 - "grammarNote": brief grammar explanation
 
-**Example:**
-For passage: "Students learn every day. The teacher helps them understand."
-
-{
-  "question": "다음 글의 밑줄 친 부분 중, 어법상 틀린 것은?",
-  "markers": [
-    {"position": "Students", "displayWord": "learn", "isWrong": false, "grammarNote": "plural subject + base verb"},
-    {"position": "The teacher", "displayWord": "helps", "isWrong": false, "grammarNote": "singular subject + -s"},
-    {"position": "helps them", "displayWord": "understanding", "isWrong": true, "originalWord": "understand", "grammarNote": "should be infinitive after help"},
-    {"position": "Learning", "displayWord": "is", "isWrong": false, "grammarNote": "gerund subject + singular verb"},
-    {"position": "important for", "displayWord": "everyone", "isWrong": false, "grammarNote": "correct pronoun"}
-  ],
-  "answer": 3,
-  "explanation": "정답은 ③번입니다. 'understanding' → 'understand'로 고쳐야 합니다. help 뒤에는 동사원형이 와야 합니다."
-}
-
 **CRITICAL RULES:**
 - markers array MUST have EXACTLY 5 items
 - EXACTLY 1 marker must have isWrong: true
@@ -69,18 +53,62 @@ For passage: "Students learn every day. The teacher helps them understand."
 - displayWord must be a single word that exists or could exist at that position
 - **NEVER use HTML tags in explanation. Use single quotes '...' for emphasis.**
 
-**CONNECTOR VARIATION (IMPORTANT):**
-Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
-- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
-- Or connect ideas directly without always using a connector
-- Natural flow is more important than formula
+**EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
+**Paragraph 1 - 글 내용 요약:**
+"글은 [글의 핵심 내용을 간결하게 요약]. [문법적으로 주목할 부분 설명]."
+
+**Paragraph 2 - 정답 분석 (문법 규칙 설명):**
+"정답은 '[틀린 형태]'를 '[올바른 형태]'로 고쳐야 한다. [문법 규칙 설명 - 예: help 뒤에는 동사원형이 와야 한다]. 이 문장에서 '[문맥 설명]'이므로 [올바른 형태]가 적절하다."
+
+**Paragraph 3 - 나머지 선지 분석 (각각 왜 맞는지):**
+"①'[단어]'는 [문법 설명 - 예: 복수 주어 뒤에 동사원형이 와서 올바르다].
+②'[단어]'는 [문법 설명 - 예: 단수 주어 뒤에 -s가 붙어 올바르다].
+③'[단어]'는 [왜 틀린지 - 정답이므로 이미 설명함].
+④'[단어]'는 [문법 설명 - 예: 동명사 주어 뒤에 단수 동사가 와서 올바르다].
+⑤'[단어]'는 [문법 설명 - 예: 전치사 뒤에 대명사가 와서 올바르다]."
+
+**EXCELLENT EXAMPLE:**
+"글은 학생들의 학습과 교사의 역할에 대해 설명한다. 동사의 형태와 주어-동사 수일치가 중요한 문법 포인트이다.
+
+정답은 'understanding'을 'understand'로 고쳐야 한다. help는 사역동사로, 목적어 뒤에 동사원형(원형부정사)이 와야 한다. 'help them understand'가 올바른 형태이다.
+
+①'learn'은 복수 주어 Students 뒤에 동사원형이 와서 올바르다. ②'helps'는 단수 주어 teacher 뒤에 -s가 붙어 수일치가 맞다. ③'understanding'은 help 뒤에 동사원형이 아닌 현재분사가 와서 틀렸다. ④'is'는 동명사 주어 Learning 뒤에 단수 동사가 와서 올바르다. ⑤'everyone'은 전치사 for 뒤에 대명사가 와서 올바르다."
+
+**BAD EXAMPLE (DO NOT DO THIS):**
+"정답은 ③번입니다. 'understanding'을 'understand'로 고쳐야 합니다." ← 너무 짧고 분석이 없음!
+
+**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
+
+
+
+**AUTO-FIX [MISSING_STRUCTURE]:**
+**MANDATORY 3-PARAGRAPH STRUCTURE:**
+Paragraph 1: 글 내용 요약 (2-3문장)
+Paragraph 2: 정답 분석 + 무엇을 수식하는지 명시
+Paragraph 3: 모든 5개 선지 분석 (①②③④⑤)
+
+Separate each paragraph with \n\n
+
+
+**AUTO-FIX [MISSING_KOREAN]:**
+**MANDATORY: Include Korean meaning for EVERY word in parentheses.**
+Example: 'prove(증명하다)', 'disprove(반증하다)'
+Your response will be REJECTED if any word lacks Korean translation.
+
+
+**AUTO-FIX [MISSING_MODIFIER]:**
+**MANDATORY: Specify what each word MODIFIES.**
+BAD: "'soggy'는 부정확하다"
+GOOD: "'soggy'는 **토스트의 식감**을 설명하는데, 굽는 결과와 맞지 않다"
+
+Always bold the modified target: **[무엇]**
 **Output (JSON only):**
 {
   "question": "다음 글의 밑줄 친 부분 중, 어법상 틀린 것은?",
   "markers": [5 marker objects as described above],
   "answer": [1-5, the wrong marker number],
-  "explanation": "정답은 [N]번입니다. '[틀린형태]' → '[올바른형태]'로 고쳐야 합니다. [문법 설명]"
+  "explanation": "글은 [내용 요약]. [문법 포인트].\\n\\n정답은 '[틀린형태]'를 '[올바른형태]'로 고쳐야 한다. [문법 규칙 설명]. [문맥 설명].\\n\\n①'[단어]'는 [왜 맞는지]. ②'[단어]'는 [왜 맞는지]. ③'[단어]'는 [왜 틀린지]. ④'[단어]'는 [왜 맞는지]. ⑤'[단어]'는 [왜 맞는지]."
 }
 `;
 
@@ -108,28 +136,6 @@ TASK: Create a question where students identify ONE contextually WRONG word amon
   - If isWrong=true: displayWord = the NEW WRONG word (different from originalWord)
 - "correctWord": Only for isWrong=true, same as originalWord (the correct answer)
 
-**Example:**
-Original passage: "The scientist conducted a careful experiment to prove his theory."
-
-For the WRONG marker (isWrong=true):
-- originalWord: "prove" (exists in original passage)
-- displayWord: "disprove" (WRONG word to show - this replaces "prove")
-- correctWord: "prove" (the correct word = originalWord)
-- Result: Passage shows "disprove" but correct answer is "prove"
-
-{
-  "question": "다음 글의 밑줄 친 부분 중, 문맥상 낱말의 쓰임이 적절하지 않은 것은?",
-  "markers": [
-    {"originalWord": "careful", "displayWord": "careful", "isWrong": false, "contextNote": "careful fits"},
-    {"originalWord": "experiment", "displayWord": "experiment", "isWrong": false, "contextNote": "experiment fits"},
-    {"originalWord": "prove", "displayWord": "disprove", "isWrong": true, "correctWord": "prove", "contextNote": "disprove doesn't fit - scientist wants to validate, not invalidate"},
-    {"originalWord": "his", "displayWord": "his", "isWrong": false, "contextNote": "his fits"},
-    {"originalWord": "theory", "displayWord": "theory", "isWrong": false, "contextNote": "theory fits"}
-  ],
-  "answer": 3,
-  "explanation": "정답은 ③번입니다. 'disprove(반증하다)'는 문맥상 'prove(증명하다)'가 와야 합니다. 과학자는 자신의 이론을 증명하려는 것이지 반증하려는 것이 아닙니다."
-}
-
 **VALIDATION CHECKLIST (verify before responding):**
 ✓ markers array has EXACTLY 5 items
 ✓ EXACTLY 1 marker has isWrong: true
@@ -137,21 +143,49 @@ For the WRONG marker (isWrong=true):
 ✓ For isWrong=true: correctWord = originalWord
 ✓ For isWrong=false: displayWord = originalWord (they must be THE SAME)
 ✓ answer = index+1 of the isWrong marker
-✓ explanation mentions displayWord as wrong and correctWord as the answer
 ✓ **NEVER use HTML tags (<u>, <b>, etc.) in explanation - use single quotes '...' instead**
 
-**CONNECTOR VARIATION (IMPORTANT):**
-Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
-- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
-- Or connect ideas directly without always using a connector
-- Natural flow is more important than formula
+**EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
+
+**Paragraph 1 - 글 내용 요약:**
+"글은 [글의 핵심 내용을 간결하게 요약]. [문맥상 중요한 포인트 설명]."
+
+**Paragraph 2 - 정답 분석 (단어가 수식하는 대상을 명시!):**
+"정답은 '[틀린 단어](사전적 뜻)'를 '[올바른 단어](사전적 뜻)'로 바꿔야 한다. 본문에서 '[관련 문맥을 직접 인용]'이라고 했다. 여기서 '[틀린/올바른 단어]'는 **[무엇을 수식/설명하는지]**를 나타낸다. '[올바른 단어]'는 [왜 문맥에 맞는지 - 수식 대상과의 관계 설명]. 반면 '[틀린 단어]'는 [사전적 의미와 수식 대상이 왜 어울리지 않는지 구체적으로 설명]."
+
+**Paragraph 3 - 나머지 선지 분석 (각각 무엇을 수식하는지 명시!):**
+"①'[단어](뜻)'는 **[무엇]**을 설명하며, [왜 그 대상과 어울리는지].
+②'[단어](뜻)'는 **[무엇]**을 수식하며, [왜 그 대상과 어울리는지].
+③'[단어](뜻)'는 **[무엇]**을 설명하는데, [왜 틀린지 - 정답이므로 위에서 설명].
+④'[단어](뜻)'는 **[무엇]**을 수식하며, [왜 그 대상과 어울리는지].
+⑤'[단어](뜻)'는 **[무엇]**을 나타내며, [왜 그 대상과 어울리는지]."
+
+**EXCELLENT EXAMPLE:**
+"글은 토스트에 땅콩버터를 발라 먹는 즐거움에 대해 설명한다. 토스트의 식감과 땅콩버터의 조화를 강조하고 있다.
+
+정답은 'soggy(물에 젖어 눅눅한)'를 'crispy(바삭한)'로 바꿔야 한다. 본문에서 'Toasting bread makes it warm and soggy'라고 했다. 여기서 'soggy/crispy'는 **토스트의 식감**을 설명한다. 토스트는 빵을 구워서 만드는 것이므로 바삭한(crispy) 식감이 되어야 맞다. 반면 'soggy'는 빵이 물에 젖어서 눅눅해진 상태를 의미하므로, 토스트를 굽는 결과로는 어울리지 않는다.
+
+①'smooth(부드러운)'는 **땅콩버터의 질감**을 설명하며, 땅콩버터는 크리미하고 부드러운 질감이므로 적절하다. ②'nutritious(영양가 있는)'는 **땅콩버터의 영양적 특성**을 설명하며, 단백질이 풍부한 땅콩버터를 묘사하기에 적절하다. ③'soggy(눅눅한)'는 **토스트의 식감**을 설명하는데, 굽는 결과와 맞지 않으므로 정답이다. ④'delightful(즐거운)'은 **맛의 경험**을 설명하며, 맛있는 음식 경험을 나타내기에 적절하다. ⑤'convenient(편리한)'은 **음식 준비의 용이성**을 설명하며, 간편하게 만들 수 있다는 맥락에 적절하다."
+
+**BAD EXAMPLE (DO NOT DO THIS):**
+"정답은 ③번입니다. 'soggy'는 'crispy'가 와야 합니다." ← 뜻도 없고 무엇을 수식하는지도 없음!
+"'soggy(흐물흐물한)'는 부정확한 표현이므로 정답이다." ← 왜 부정확한지 설명이 없음!
+
+**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
+
+**MANDATORY CHECKLIST (your response will be REJECTED if you fail any of these):**
+□ Explanation has EXACTLY 3 paragraphs separated by \\n\\n
+□ Every word in choices has Korean meaning in parentheses: 'word(한국어뜻)'
+□ Paragraph 2 explains what the wrong word MODIFIES (e.g., "토스트의 식감을 설명한다")
+□ Paragraph 3 analyzes ALL 5 choices with pattern: ①'word(뜻)'는 **[무엇]**을 설명하며...
+□ Never say "부정확한 표현이므로" without explaining WHY it's incorrect
 
 **Output (JSON only):**
 {
   "question": "다음 글의 밑줄 친 부분 중, 문맥상 낱말의 쓰임이 적절하지 않은 것은?",
   "markers": [5 marker objects],
   "answer": [1-5],
-  "explanation": "정답은 [N]번입니다. '[displayWord]'는 문맥상 '[correctWord]'가 와야 합니다. [이유]"
+  "explanation": "글은 [내용 요약]. [문맥 포인트].\\n\\n정답은 '[틀린단어](뜻)'를 '[올바른단어](뜻)'로 바꿔야 한다. 본문에서 '[인용]'이라고 했는데, [왜 올바른 단어가 맞는지]. '[틀린단어]'는 [왜 안 맞는지].\\n\\n①'[단어](뜻)'는 [왜 맞는지]. ②'[단어](뜻)'는 [왜 맞는지]. ③'[단어](뜻)'는 [왜 틀린지]. ④'[단어](뜻)'는 [왜 맞는지]. ⑤'[단어](뜻)'는 [왜 맞는지]."
 }
 `;
 
@@ -210,34 +244,30 @@ GOOD choices require CONTEXTUAL INTERPRETATION:
 7. The "answer" field number MUST match the choice referenced in "explanation"
 8. **USE \\n\\n (double newline) to separate paragraphs in explanation. DO NOT use single \\ or \\n.**
 
-**EXPLANATION REQUIREMENTS (CRITICAL):**
-The explanation must be structured with clear paragraphs:
+**EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
-Paragraph 1: State the answer
-"정답은 ③번 '[정답 선지]'입니다."
+**Paragraph 1 - 글 내용 요약:**
+"글은 [글의 핵심 내용을 간결하게 요약]. [밑줄 친 표현이 등장하는 맥락 설명]."
 
-Paragraph 2: Quote and analyze the context
-"본문에서 '[관련 문장 인용]'이라고 했는데, [문맥 분석]."
+**Paragraph 2 - 정답 분석 (비유적 의미 설명):**
+"정답은 '[정답 선지]'이다. 본문에서 '[밑줄 친 표현 포함 문장 인용]'이라고 했는데, [왜 이 해석이 문맥에 맞는지]. '[표현]'은 문자 그대로 '[직역]'이 아니라 '[비유적 의미]'를 뜻한다."
 
-Paragraph 3: Explain why this interpretation fits (VARY YOUR CONNECTORS)
-Use natural flow without always starting with "따라서". Options:
-- "이처럼", "그러므로", "이런 이유로", "결국", or just explain directly
-- Example: "'break the ice'는 문자 그대로 '얼음을 깨다'가 아니라, 어색하거나 불편한 상황을 완화시킨다는 비유적 의미로 사용되었습니다."
+**Paragraph 3 - 오답 분석 (각각 왜 틀린지):**
+"①'[선지]'는 [왜 틀린지 - 예: 문자 그대로의 해석이라 비유적 의미를 놓쳤다].
+②'[선지]'는 [왜 정답인지].
+③'[선지]'는 [왜 틀린지 - 예: 문맥과 관련 없는 해석이다].
+④'[선지]'는 [왜 틀린지 - 예: 표현의 일부만 해석한 것이다].
+⑤'[선지]'는 [왜 틀린지 - 예: 반대되는 의미이다]."
 
-Paragraph 4: Why other choices are wrong (optional but recommended)
-"①번 '[오답]'은 [왜 틀린지], ②번은 [왜 틀린지]."
+**EXCELLENT EXAMPLE:**
+"글은 회의 시작 시 분위기를 부드럽게 만들기 위한 매니저의 행동을 설명한다. 처음 만난 사람들 사이의 어색함을 해소하는 상황이다.
 
-**GOOD EXAMPLE 1 (NO HTML TAGS, USE \\n\\n FOR PARAGRAPH BREAKS):**
-"정답은 ②번 '어색한 분위기를 깨다'입니다.\\n\\n본문에서 'At the beginning of the meeting, the manager told a joke to break the ice'라고 했는데, 회의 시작 시 농담을 한 이유는 처음 만난 사람들 사이의 어색함을 없애기 위함입니다.\\n\\n따라서 'break the ice'는 문자 그대로 '얼음을 깨다'가 아니라, 어색하거나 불편한 상황을 완화시킨다는 비유적 의미로 사용되었습니다.\\n\\n①번 '얼음을 깨다'는 문자 그대로의 해석이라 오답입니다."
+정답은 '어색한 분위기를 깨다'이다. 본문에서 'At the beginning of the meeting, the manager told a joke to break the ice'라고 했는데, 회의 시작 시 농담을 한 이유는 처음 만난 사람들 사이의 긴장감을 풀기 위함이다. 'break the ice'는 문자 그대로 '얼음을 깨다'가 아니라 '어색한 분위기를 완화하다'라는 비유적 의미로 사용되었다.
 
-**GOOD EXAMPLE 2 (maintaining the human touch):**
-For "maintaining the human touch" in context of AI and healthcare:
-- CORRECT ANSWER: "인간적인 감성을 유지하다" or "인간다운 배려를 유지하다" (contextual meaning)
-- WRONG ANSWER (DISTRACTOR): "인간의 접촉을 유지하다" (literal translation - MUST be included as a wrong choice!)
-- Other distractors: "기술의 발전을 막다", "인간의 우월성을 주장하다", etc.
+①'얼음을 깨다'는 문자 그대로의 직역으로, 관용적 표현의 비유적 의미를 놓쳤다. ②'어색한 분위기를 깨다'는 처음 만난 사람들 사이의 긴장을 푸는 문맥과 정확히 일치한다. ③'관계를 단절하다'는 분위기를 좋게 하려는 맥락과 반대된다. ④'냉정함을 유지하다'는 농담을 하는 따뜻한 행동과 맞지 않다. ⑤'침묵을 지키다'는 농담을 하는 상황과 모순된다."
 
 **BAD EXAMPLE (DO NOT DO THIS):**
-"밑줄 친 부분은 문맥상 '② 어색한 분위기를 깨다'를 의미합니다." ← 너무 짧고 설명이 없음!
+"밑줄 친 부분은 문맥상 '② 어색한 분위기를 깨다'를 의미합니다." ← 너무 짧고 분석이 없음!
 Using literal translation as the correct answer ← ABSOLUTELY WRONG!
 
 **CRITICAL WARNING ABOUT CHOICES:**
@@ -273,41 +303,52 @@ Create a question asking for the MAIN TOPIC of the passage.
 1. Identify the central theme accurately
 2. Create 5 topic choices in Korean (4 plausible distractors, 1 correct)
 3. The correct answer must capture the main idea, not just a minor detail
-4. The explanation MUST be detailed with specific evidence from the passage
-5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage. Keep all line breaks (\\n\\n) between paragraphs exactly as they appear in the original passage.**
+4. The explanation MUST follow the DETAILED STRUCTURE below
+5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage.**
 
 **Passage:**
 {passage}
 
-**EXPLANATION REQUIREMENTS (CRITICAL):**
-The explanation must include:
-1. The answer number and the correct topic choice text
-2. Quote 1-2 key sentences from the passage that reveal the main topic
-3. Explain WHY this topic captures the main idea
-4. Briefly explain why other distractors are insufficient (too narrow/broad/off-topic)
-5. Do NOT just say "이 글은 ~에 대해 다루고 있습니다" without evidence
+**DISTRACTOR DESIGN (each wrong answer should have a specific flaw):**
+- Type A: 과장/단정 (Exaggeration) - 글의 내용을 넘어서는 단정적 주장
+- Type B: 부분만 강조 (Too Narrow) - 한 측면만 강조해 전체 흐름을 좁힘
+- Type C: 관점 변경 (Shifted Focus) - 글의 성격과 다른 방향으로 시각을 바꿈
+- Type D: 본문 미언급 (Not Mentioned) - 본문에서 중심적으로 다루지 않은 내용
 
-**CONNECTOR VARIATION (IMPORTANT):**
-Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
-- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
-- Or connect ideas directly without always using a connector
-- Natural flow is more important than formula
+**EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
-**GOOD EXAMPLE:**
-"정답은 ③번 '인공지능의 의료 분야 활용'입니다. 본문에서 'AI systems can analyze patient data with remarkable accuracy'와 'Machine learning algorithms can spot subtle anomalies in X-rays'라고 했는데, 이는 인공지능이 의료 진단에 활용되는 구체적인 방식을 설명합니다. 글 전체가 AI의 의료 분야 적용에 초점을 맞추고 있어 ③번이 주제를 가장 잘 포괄합니다. ①, ②번은 지엽적인 내용이고, ④, ⑤번은 본문에서 다루지 않는 내용입니다."
+**Paragraph 1 - 글 내용 요약:**
+"글은 [글쓴이가 무엇을 설명/주장하는지 간결하게 요약]. [글의 흐름이나 핵심 논점 설명]."
+
+**Paragraph 2 - 정답 분석 (핵심어 중심):**
+"정답은 [핵심 개념/키워드]를 주제에 담으면서, [또 다른 핵심 요소]라는 측면을 함께 포괄한다. 이 핵심어들(예: AI, 의료, 진단)이 글의 중심을 간결하게 드러낸다."
+
+**Paragraph 3 - 오답 분석 (각각 왜 틀린지):**
+"①은 [구체적 이유 - 예: 글의 범위를 넘어선 과장된 주장이다].
+②는 [구체적 이유 - 예: 한 측면만 강조해 전체 흐름을 지나치게 좁힌다].
+③은 [구체적 이유 - 예: 글의 설명적 성격과 다른 제안/주장으로 시각을 바꾼다].
+④는 [구체적 이유 - 예: 본문에서 중심적으로 다루지 않은 내용이다].
+⑤은 [왜 정답인지 - 예: 글이 다룬 핵심 개념과 논점을 모두 반영해 주제로 가장 적절하다]."
+
+**EXCELLENT EXAMPLE:**
+"글은 인공지능이 의료 분야에서 환자 데이터를 분석하고 X-ray에서 이상을 감지하는 방식을 설명한다. AI 기술의 정확성과 효율성이 의료 진단에 가져오는 변화를 중심으로 서술한다.
+
+정답은 인공지능(AI)이라는 핵심 기술과 의료 분야 적용이라는 두 축을 함께 포괄한다. 'AI', '의료', '진단'이라는 핵심어가 글의 중심을 간결하게 드러낸다.
+
+①은 AI가 인간 의사를 대체할 것이라는 글에 없는 단정적 주장이다. ②는 X-ray 분석이라는 한 예시만 강조해 전체 활용 범위를 좁힌다. ③은 AI 도입을 위한 정책 제안 방향으로 시각을 바꿔 글의 설명적 성격과 어긋난다. ④는 AI 개발 역사를 다루는데, 본문의 중심 내용이 아니다. ⑤는 글이 설명한 AI의 의료 진단 활용을 정확히 반영해 주제로 가장 적절하다."
 
 **BAD EXAMPLE (DO NOT DO THIS):**
-"정답은 ③번입니다. 이 글은 인공지능에 대해 다루고 있습니다." ← 이런 식으로 하지 마세요!
+"정답은 ③번입니다. 이 글은 인공지능에 대해 다루고 있습니다." ← 너무 짧고 분석이 없음!
 
-**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
+**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
 
 **Output (JSON only):**
 {
   "question": "다음 글의 주제로 가장 적절한 것은?",
   "modifiedPassage": "{passage}",
   "choices": ["주제 선지1", "주제 선지2", "주제 선지3", "주제 선지4", "주제 선지5"],
-  "answer": 3,
-  "explanation": "정답은 ③번 '[정답 주제]'입니다. 본문에서 '[핵심 문장 인용]'이라고 했는데, 이는 [주제와의 연관성 설명]. 글 전체가 [주제 요약]에 초점을 맞추고 있어 ③번이 가장 적절합니다."
+  "answer": 5,
+  "explanation": "글은 [내용 요약]. [핵심 논점 설명].\\n\\n정답은 [핵심 키워드]를 주제에 담으면서, [다른 핵심 요소]를 함께 포괄한다. [핵심어들]이 글의 중심을 간결하게 드러낸다.\\n\\n①은 [왜 틀린지]. ②는 [왜 틀린지]. ③은 [왜 틀린지]. ④는 [왜 틀린지]. ⑤은 [왜 정답인지 - 주제로 가장 적절하다]."
 }
 `;
 
@@ -322,42 +363,53 @@ Create a question asking for the BEST TITLE of the passage.
 **Requirements:**
 1. Create 5 title options in English
 2. The correct title should capture the main message comprehensively
-3. Distractors should be plausible but incomplete or focus on minor details
-4. The explanation MUST be detailed with specific reasoning
-5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage. Keep all line breaks (\\n\\n) between paragraphs exactly as they appear in the original passage.**
+3. Distractors should be plausible but flawed in specific ways (see below)
+4. The explanation MUST follow the DETAILED STRUCTURE below
+5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage.**
 
 **Passage:**
 {passage}
 
-**EXPLANATION REQUIREMENTS (CRITICAL):**
-The explanation must include:
-1. The answer number and the correct title
-2. Quote the key sentence(s) that capture the main message
-3. Explain WHY this title best represents the passage's core message
-4. Explain why at least 1-2 distractors are NOT the best choice
-5. Do NOT just say "이 글의 핵심은 ~입니다" without evidence
+**DISTRACTOR DESIGN (each wrong answer should have a specific flaw):**
+- Type A: 과장/단정 (Exaggeration) - 글의 내용을 넘어서는 단정적 주장
+- Type B: 부분만 강조 (Too Narrow) - 한 측면만 강조해 전체 흐름을 좁힘
+- Type C: 관점 변경 (Shifted Focus) - 서술적 성격과 다른 방향으로 시각을 바꿈
+- Type D: 본문 미언급 (Not Mentioned) - 본문에서 중심적으로 다루지 않은 내용
 
-**CONNECTOR VARIATION (IMPORTANT):**
-Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
-- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
-- Or connect ideas directly without always using a connector
-- Natural flow is more important than formula
+**EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
-**GOOD EXAMPLE:**
-"정답은 ②번 'The Power of Music in Healing'입니다. 본문에서 'Music therapy has shown remarkable effects on patients with various conditions'와 'the rhythm and melody can stimulate brain regions associated with healing'이라고 했는데, 글 전체가 음악의 치료 효과에 초점을 맞추고 있습니다. ①번 'Music History'는 역사가 아닌 치료 효과를 다루므로 부적절하고, ④번 'Brain Science'는 너무 광범위합니다."
+**Paragraph 1 - 글 내용 요약:**
+"글은 [화자/글쓴이가 무엇을 서술하는지 간결하게 요약]. [글의 흐름이나 구조 설명]."
+
+**Paragraph 2 - 정답 분석 (핵심어 중심):**
+"정답은 [핵심 성격/키워드]을 제목에 담으면서, [또 다른 핵심 요소]라는 [두 번째 축]을 함께 포괄한다. 이 [핵심어들](예: screening, technical, team fit)이 글의 중심을 간결하게 드러낸다."
+
+**Paragraph 3 - 오답 분석 (각각 왜 틀린지):**
+"①은 [구체적 이유 - 예: 글의 중요성을 과장해 글의 기술적 설명을 넘어선 단정에 이른다].
+②는 [구체적 이유 - 예: 한 측면만 강조해 전체 흐름을 지나치게 좁힌다].
+③은 [구체적 이유 - 예: 문제 해결/제안 방향으로 시각을 바꿔 글의 서술적 성격과 어긋난다].
+④는 [구체적 이유 - 예: 특정 부분만 부각시켜 글이 중심적으로 다룬 폭과 형식을 놓친다].
+⑤은 [왜 정답인지 - 예: 글이 보여 준 핵심 성격과 평가 축을 모두 반영해 중심과 가장 잘 맞는다]."
+
+**EXCELLENT EXAMPLE:**
+"글은 화자가 경험한 초기 면접의 진행 과정을 서술한다. 질문 범위와 화면 공유로 코드와 프로젝트를 보여 준 점, 그리고 다음 라운드로 이어지기 위한 합의로 마무리된 흐름을 제시한다.
+
+정답은 면접의 핵심 성격인 screening을 제목에 담으면서, Zoom 환경에서 동시 평가된 technical 역량과 team 적합성이라는 두 축을 함께 포괄한다. 이 세 가지 핵심어(Zoom, screening, technical, team)가 글의 중심을 간결하게 드러낸다.
+
+①은 면접의 중요성을 과장해 글의 기술적·상호작용적 설명을 넘어선 단정에 이른다. ②는 코드 시연이라는 한 측면만 강조해 전체 흐름을 지나치게 좁힌다. ③은 문제 해결을 위한 제안이나 개선 방안을 다루는 방향으로 시각을 바꿔 글의 서술적 성격과 어긋난다. ④는 면접 중의 압박감만 부각시켜 글이 중심적으로 다룬 평가의 폭과 형식을 놓친다. ⑤은 글이 보여 준 초기 화상 screening의 성격과 두 가지 평가 축을 모두 반영해 중심과 가장 잘 맞는다."
 
 **BAD EXAMPLE (DO NOT DO THIS):**
-"정답은 ②번입니다. 이 글의 핵심은 음악입니다." ← 이런 식으로 하지 마세요!
+"정답은 ⑤번입니다. 이 글의 핵심은 면접입니다." ← 너무 짧고 분석이 없음!
 
-**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
+**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
 
 **Output (JSON only):**
 {
   "question": "다음 글의 제목으로 가장 적절한 것은?",
   "modifiedPassage": "{passage}",
   "choices": ["Title Option 1", "Title Option 2", "Title Option 3", "Title Option 4", "Title Option 5"],
-  "answer": 2,
-  "explanation": "정답은 ②번 '[정답 제목]'입니다. 본문에서 '[핵심 문장 인용]'이라고 했는데, 글 전체가 [주제 요약]에 초점을 맞추고 있습니다. [오답 분석도 포함]."
+  "answer": 5,
+  "explanation": "글은 [내용 요약]. [흐름 설명].\\n\\n정답은 [핵심 키워드]을 제목에 담으면서, [다른 핵심 요소]를 함께 포괄한다. [핵심어들]이 글의 중심을 간결하게 드러낸다.\\n\\n①은 [왜 틀린지]. ②는 [왜 틀린지]. ③은 [왜 틀린지]. ④는 [왜 틀린지]. ⑤은 [왜 정답인지 - 중심과 가장 잘 맞는다]."
 }
 `;
 
@@ -373,31 +425,44 @@ Create a question asking which statement is TRUE according to the passage.
 1. Create 5 statements about the passage in Korean
 2. 4 should be FALSE or not mentioned in the passage
 3. 1 should be clearly TRUE based on specific evidence in the passage
-4. **CRITICAL: Preserve the original paragraph structure in modifiedPassage. Keep all line breaks (\\n\\n) between paragraphs exactly as they appear in the original passage.**
+4. The explanation MUST follow the DETAILED STRUCTURE below
+5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage.**
 
 **Passage:**
 {passage}
 
-**EXPLANATION REQUIREMENTS (CRITICAL):**
-The explanation must include:
-1. The answer number and the correct statement text
-2. Quote the EXACT sentence or phrase from the passage that proves it
-3. Explain how the passage supports this statement
-4. Do NOT just say "본문에서 확인할 수 있습니다" without quoting evidence
+**DISTRACTOR DESIGN (each wrong answer should have a specific flaw):**
+- Type A: 반대 (Opposite) - 본문 내용과 반대되는 진술
+- Type B: 과장 (Exaggeration) - 본문 내용을 과장하거나 단정짓는 진술
+- Type C: 미언급 (Not Mentioned) - 본문에서 언급하지 않은 내용
+- Type D: 혼동 (Confusion) - 본문의 다른 내용과 혼동하게 만드는 진술
 
-**CONNECTOR VARIATION (IMPORTANT):**
-Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
-- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
-- Or connect ideas directly without always using a connector
-- Natural flow is more important than formula
+**EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
-**GOOD EXAMPLE:**
-"정답은 ④번 '콜라는 1800년대 후반에 처음 만들어졌다'입니다. 본문에서 'Coca-Cola was first created in 1886 by a pharmacist in Atlanta'라고 명시되어 있어, 1800년대 후반(1886년)에 처음 만들어졌음을 확인할 수 있습니다."
+**Paragraph 1 - 글 내용 요약:**
+"글은 [글의 핵심 내용을 간결하게 요약]. [주요 사실이나 정보 나열]."
+
+**Paragraph 2 - 정답 분석 (근거 인용):**
+"정답은 [정답 선지 내용]이다. 본문에서 '[관련 영어 문장 정확히 인용]'이라고 명시되어 있어 이를 확인할 수 있다."
+
+**Paragraph 3 - 오답 분석 (각각 왜 틀린지):**
+"①은 [구체적 이유 - 예: 본문에서 '~'라고 했으므로 반대되는 내용이다].
+②는 [구체적 이유 - 예: 본문에서 언급되지 않은 내용이다].
+③은 [구체적 이유 - 예: 본문의 '~' 내용을 과장한 것이다].
+④는 [왜 정답인지 - 예: 본문 내용과 정확히 일치한다].
+⑤은 [구체적 이유 - 예: 본문의 다른 부분과 혼동한 진술이다]."
+
+**EXCELLENT EXAMPLE:**
+"글은 코카콜라의 역사를 설명한다. 1886년 애틀랜타의 약사가 처음 만들었고, 원래 의료용 강장제로 개발되었다가 이후 음료로 대중화되었다는 내용을 담고 있다.
+
+정답은 '콜라는 1800년대 후반에 처음 만들어졌다'이다. 본문에서 'Coca-Cola was first created in 1886 by a pharmacist in Atlanta'라고 명시되어 있어 1800년대 후반(1886년)에 처음 만들어졌음을 확인할 수 있다.
+
+①은 '콜라는 20세기 초에 발명되었다'라고 했는데, 1886년은 19세기 후반이므로 본문과 반대된다. ②는 '콜라는 처음부터 청량음료로 개발되었다'라고 했는데, 본문에서 의료용 강장제로 개발되었다고 했으므로 틀린 내용이다. ③은 '콜라의 발명가는 유럽 출신이었다'라고 했는데, 본문에서 언급되지 않은 내용이다. ④는 본문 내용과 정확히 일치한다. ⑤은 '콜라는 뉴욕에서 처음 만들어졌다'라고 했는데, 애틀랜타와 혼동한 진술이다."
 
 **BAD EXAMPLE (DO NOT DO THIS):**
-"정답은 ④번입니다. 본문에서 확인할 수 있습니다." ← 이런 식으로 하지 마세요!
+"정답은 ④번입니다. 본문에서 확인할 수 있습니다." ← 너무 짧고 분석이 없음!
 
-**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
+**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
 
 **Output (JSON only):**
 {
@@ -405,7 +470,7 @@ Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
   "modifiedPassage": "{passage}",
   "choices": ["진술1", "진술2", "진술3", "진술4", "진술5"],
   "answer": 4,
-  "explanation": "정답은 ④번 '[정답 선지 내용]'입니다. 본문에서 '[관련 영어 문장 인용]'이라고 했는데, 이는 [선지 내용과의 연관성 설명]을 뜻합니다."
+  "explanation": "글은 [내용 요약]. [주요 사실 나열].\\n\\n정답은 '[정답 선지 내용]'이다. 본문에서 '[영어 문장 인용]'이라고 명시되어 있어 이를 확인할 수 있다.\\n\\n①은 [왜 틀린지]. ②는 [왜 틀린지]. ③은 [왜 틀린지]. ④는 [왜 정답인지]. ⑤은 [왜 틀린지]."
 }
 `;
 
@@ -421,35 +486,51 @@ Create a question asking which statement is FALSE or NOT MENTIONED.
 1. Create 5 statements about the passage in Korean
 2. 4 should be TRUE based on evidence in the passage
 3. 1 should be FALSE (contradicts the passage) or NOT MENTIONED (not in passage)
-4. **CRITICAL: Preserve the original paragraph structure in modifiedPassage. Keep all line breaks (\\n\\n) between paragraphs exactly as they appear in the original passage.**
+4. The explanation MUST follow the DETAILED STRUCTURE below
+5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage.**
 
 **Passage:**
 {passage}
 
-**EXPLANATION REQUIREMENTS (CRITICAL):**
-The explanation must include:
-1. The answer number and the incorrect statement text
-2. Explain WHETHER it's false OR not mentioned
-3. If FALSE: Quote what the passage ACTUALLY says and explain the contradiction
-4. If NOT MENTIONED: Explain what topics the passage covers and why this isn't included
-5. Do NOT just say "언급되지 않았습니다" - explain specifically
+**WRONG ANSWER TYPES (for the ONE incorrect statement):**
+- Type A: 반대 (Opposite) - 본문 내용과 정반대되는 진술
+- Type B: 미언급 (Not Mentioned) - 본문에서 전혀 다루지 않은 내용
+- Type C: 과장/축소 (Distortion) - 본문 내용을 과장하거나 축소한 진술
+- Type D: 혼동 (Confusion) - 본문의 다른 내용과 뒤섞어 왜곡한 진술
 
-**CONNECTOR VARIATION (IMPORTANT):**
-Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
-- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
-- Or connect ideas directly without always using a connector
-- Natural flow is more important than formula
+**EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
-**GOOD EXAMPLE (FALSE):**
-"정답은 ③번 '콜라는 원래 의료 목적으로 개발되지 않았다'입니다. 본문에서 'It was originally developed as a medicinal tonic'라고 명시되어 있어, 콜라가 원래 의료 목적(강장제)으로 개발되었음을 알 수 있습니다. 이처럼 ③번 진술은 본문 내용과 반대됩니다."
+**Paragraph 1 - 글 내용 요약:**
+"글은 [글의 핵심 내용을 간결하게 요약]. [본문에서 다루는 주요 사실들 나열]."
 
-**GOOD EXAMPLE (NOT MENTIONED):**
-"정답은 ②번 '콜라는 아시아에서 처음 인기를 얻었다'입니다. 본문은 콜라의 발명 과정과 미국 내 초기 판매에 대해서만 다루고 있으며, 아시아 시장에 대한 내용은 전혀 언급되지 않았습니다."
+**Paragraph 2 - 정답(틀린 선지) 분석:**
+"정답은 '[틀린 선지 내용]'이다. 본문에서 '[관련 영어 문장 인용]'이라고 했는데, 이는 [선지 내용]과 [반대/다름/관련없음]을 보여준다. [왜 이 선지가 틀린지 구체적 설명]."
+
+**Paragraph 3 - 나머지 선지 분석 (각각 왜 맞는지):**
+"①은 본문에서 '[인용]'이라고 했으므로 일치한다.
+②는 본문에서 '[인용]'이라고 했으므로 일치한다.
+③은 [왜 틀린지 - 정답이므로 이미 설명함].
+④는 본문에서 '[인용]'이라고 했으므로 일치한다.
+⑤은 본문에서 '[인용]'이라고 했으므로 일치한다."
+
+**EXCELLENT EXAMPLE (FALSE - 반대):**
+"글은 코카콜라의 역사를 설명한다. 1886년 애틀랜타의 약사가 처음 만들었고, 원래 의료용 강장제로 개발되었다가 이후 음료로 대중화되었다.
+
+정답은 '콜라는 원래 의료 목적으로 개발되지 않았다'이다. 본문에서 'It was originally developed as a medicinal tonic'라고 명시되어 있어, 콜라가 원래 의료 목적(강장제)으로 개발되었음을 알 수 있다. 이 선지는 본문 내용과 정반대되는 진술이다.
+
+①은 '콜라는 1800년대에 만들어졌다'인데, 본문에서 1886년이라고 했으므로 일치한다. ②는 '콜라는 미국에서 발명되었다'인데, 애틀랜타에서 만들어졌다고 했으므로 일치한다. ③은 본문과 반대되므로 정답이다. ④는 '콜라의 발명가는 약사였다'인데, 본문에서 'pharmacist'라고 했으므로 일치한다. ⑤은 '콜라는 이후 음료로 대중화되었다'인데, 본문 내용과 일치한다."
+
+**EXCELLENT EXAMPLE (NOT MENTIONED - 미언급):**
+"글은 코카콜라의 미국 내 발명과 초기 역사를 설명한다. 애틀랜타에서의 탄생과 의료용 강장제로 시작된 배경을 다룬다.
+
+정답은 '콜라는 아시아에서 처음 인기를 얻었다'이다. 본문은 콜라의 발명 과정과 미국 내 초기 판매에 대해서만 다루고 있으며, 아시아 시장이나 해외 확장에 대한 내용은 전혀 언급되지 않았다.
+
+①은 '콜라는 약사가 만들었다'인데, 본문에서 'pharmacist'라고 했으므로 일치한다. ②는 본문에서 언급되지 않았으므로 정답이다. ③은 '콜라는 강장제로 개발되었다'인데, 본문 내용과 일치한다. ④는 '콜라는 1886년에 만들어졌다'인데, 본문에서 명시했으므로 일치한다. ⑤은 '콜라는 애틀랜타에서 시작되었다'인데, 본문 내용과 일치한다."
 
 **BAD EXAMPLE (DO NOT DO THIS):**
-"정답은 ③번입니다. 본문에서 언급되지 않았습니다." ← 이런 식으로 하지 마세요!
+"정답은 ③번입니다. 본문에서 언급되지 않았습니다." ← 너무 짧고 분석이 없음!
 
-**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
+**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
 
 **Output (JSON only):**
 {
@@ -457,7 +538,7 @@ Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
   "modifiedPassage": "{passage}",
   "choices": ["진술1", "진술2", "진술3", "진술4", "진술5"],
   "answer": 3,
-  "explanation": "정답은 ③번 '[오답 선지 내용]'입니다. 본문에서 '[관련 내용]'이라고 했는데, 이는 [왜 틀렸는지/왜 언급되지 않았는지 설명]."
+  "explanation": "글은 [내용 요약]. [주요 사실 나열].\\n\\n정답은 '[틀린 선지 내용]'이다. 본문에서 '[영어 문장 인용]'이라고 했는데, 이는 [왜 틀린지 설명].\\n\\n①은 [왜 맞는지]. ②는 [왜 맞는지]. ③은 [정답이므로 틀린 이유]. ④는 [왜 맞는지]. ⑤은 [왜 맞는지]."
 }
 `;
 
@@ -473,68 +554,59 @@ Create a question with 1 blank in the passage.
 1. Remove 1 key word/phrase and replace with ______
 2. Create 5 options that could fit grammatically
 3. Only 1 should fit contextually
-4. The explanation MUST be DETAILED and CONTEXTUAL
-5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage. Keep all line breaks (\\n\\n) between paragraphs exactly as they appear in the original passage.**
-6. **ABSOLUTELY FORBIDDEN: NEVER include "(정답)", "(오답)", "(correct)", "(wrong)" or any answer indicators in the choices array! Choices must ONLY contain the actual word/phrase options, nothing else!**
+4. The explanation MUST follow the DETAILED STRUCTURE below
+5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage.**
+6. **ABSOLUTELY FORBIDDEN: NEVER include "(정답)", "(오답)", "(correct)", "(wrong)" in choices!**
 
 **Passage:**
 {passage}
 
-**EXPLANATION REQUIREMENTS (CRITICAL):**
-The explanation must be structured with clear paragraphs AND include vocabulary help:
+**DISTRACTOR DESIGN (each wrong answer should have a specific flaw):**
+- Type A: 반의어 (Opposite) - 문맥과 반대되는 의미의 단어
+- Type B: 유사하지만 부적절 (Similar but Wrong) - 비슷해 보이지만 문맥에 안 맞는 단어
+- Type C: 관련 주제지만 부적절 (Related but Wrong) - 같은 주제 영역이지만 문맥에 안 맞는 단어
+- Type D: 문법적으로 맞지만 의미상 부적절 (Grammatical but Wrong) - 문법상 가능하지만 의미가 안 맞는 단어
 
-Paragraph 1: State the answer with Korean meaning
-"정답은 ③번 'peaceful(평화로운)'입니다."
+**EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
-Paragraph 2: Quote and analyze the context
-"본문에서 'When people love one another, they often work together to create a ______ environment'라고 했는데, 사랑이 있는 관계에서는 서로 협력하여 평화로운 환경을 만드는 것이 일반적입니다."
+**Paragraph 1 - 글 내용 요약:**
+"글은 [글의 핵심 내용을 간결하게 요약]. [빈칸이 있는 문장의 맥락 설명]."
 
-Paragraph 3: Explain why this fits and others don't (VARY YOUR CONNECTORS - don't always use "따라서")
-Use natural Korean connectors like:
-- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉" (instead of always "따라서")
-- Or no connector at all, just explain directly
+**Paragraph 2 - 정답 분석 (어휘 뜻 포함):**
+"정답은 '[정답 단어](한글 뜻)'이다. 본문에서 '[빈칸 포함 문장 인용]'이라고 했는데, [왜 이 단어가 문맥에 맞는지 설명]. 이 단어의 핵심 의미인 '[핵심 뜻]'이 글의 흐름과 정확히 일치한다."
 
-Example: "'peaceful(평화로운)'이 문맥에 가장 적합합니다. 다른 선택지인 'hostile(적대적인)', 'chaotic(혼란스러운)', 'isolated(고립된)', 'harsh(가혹한)'는 모두 부정적인 의미를 가지고 있어 사랑이 있는 환경을 설명하기에는 적합하지 않습니다."
+**Paragraph 3 - 오답 분석 (각각 왜 틀린지, 어휘 뜻 포함):**
+"①'[단어](뜻)'은 [구체적 이유 - 예: 문맥과 반대되는 의미이다].
+②'[단어](뜻)'는 [구체적 이유 - 예: 비슷해 보이지만 글의 논지와 맞지 않다].
+③'[단어](뜻)'은 [왜 정답인지].
+④'[단어](뜻)'는 [구체적 이유 - 예: 문법적으로는 가능하지만 의미상 어울리지 않는다].
+⑤'[단어](뜻)'은 [구체적 이유 - 예: 관련 주제이지만 이 문맥에는 적합하지 않다]."
 
-**VOCABULARY IN EXPLANATION (CRITICAL):**
-When choices are English words, ALWAYS include Korean meanings in parentheses:
-- "peaceful(평화로운)"
-- "hostile(적대적인)"
-- "chaotic(혼란스러운)"
-- "isolated(고립된)"
-- "harsh(가혹한)"
+**EXCELLENT EXAMPLE:**
+"글은 사람들 사이의 사랑과 협력이 어떤 환경을 만드는지 설명한다. 서로 사랑하는 관계에서는 함께 노력하여 긍정적인 환경을 조성한다는 내용이다.
 
-**GOOD EXAMPLE:**
-"정답은 ③번 'peaceful(평화로운)'입니다.
+정답은 'peaceful(평화로운)'이다. 본문에서 'When people love one another, they often work together to create a ______ environment'라고 했는데, 사랑이 있는 관계에서 협력하여 만드는 환경은 평화롭고 조화로운 것이 자연스럽다. 'peaceful'의 핵심 의미인 '갈등 없이 조화로운'이 글의 흐름과 정확히 일치한다.
 
-본문에서 'When people love one another, they often work together to create a ______ environment'라고 했는데, 사랑이 있는 관계에서는 서로 협력하여 평화로운 환경을 만드는 것이 일반적입니다.
-
-따라서 '평화로운(peaceful)'이 문맥에 가장 잘 맞습니다. 다른 선택지인 'hostile(적대적인)', 'chaotic(혼란스러운)', 'isolated(고립된)', 'harsh(가혹한)'는 모두 부정적인 의미를 가지고 있어 사랑이 있는 환경을 설명하기에는 적합하지 않습니다."
+①'hostile(적대적인)'은 사랑과 협력의 결과로 나오기엔 문맥과 정반대되는 부정적 의미이다. ②'chaotic(혼란스러운)'는 무질서함을 뜻하여 협력의 결과물로 적합하지 않다. ③'peaceful(평화로운)'은 사랑하는 관계의 협력이 만드는 환경을 정확히 표현한다. ④'isolated(고립된)'는 함께 협력한다는 맥락과 어울리지 않는다. ⑤'harsh(가혹한)'은 사랑이라는 긍정적 관계와 상충되는 부정적 의미이다."
 
 **BAD EXAMPLE (DO NOT DO THIS):**
-"정답은 ③번 'peaceful'입니다. 문맥상 'peaceful'가 적절하기 때문입니다." ← 뜻도 없고 설명도 없음!
+"정답은 ③번 'peaceful'입니다. 문맥상 적절합니다." ← 뜻도 없고 분석도 없음!
 
-**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis. Use \\n\\n for paragraph breaks.**
+**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
+**VOCABULARY: ALWAYS include Korean meanings in parentheses: 'peaceful(평화로운)'**
 
 **Output (JSON only):**
 {
   "question": "다음 빈칸에 들어갈 말로 가장 적절한 것은?",
   "modifiedPassage": "passage with ______ blank",
-  "choices": [
-    "peaceful",
-    "hostile",
-    "chaotic",
-    "isolated",
-    "harsh"
-  ],
+  "choices": ["peaceful", "hostile", "chaotic", "isolated", "harsh"],
   "answer": 1,
-  "explanation": "정답은 ①번 'peaceful(평화로운)'입니다.\\n\\n본문에서 '[관련 문장 인용]'이라고 했는데, [문맥 분석].\\n\\n따라서 'peaceful(평화로운)'이 가장 적합합니다. 다른 선택지인 'hostile(적대적인)', 'chaotic(혼란스러운)', 'isolated(고립된)', 'harsh(가혹한)'는 [왜 안 맞는지]."
+  "explanation": "글은 [내용 요약]. [빈칸 문맥 설명].\\n\\n정답은 '[정답](뜻)'이다. 본문에서 '[인용]'이라고 했는데, [왜 맞는지]. '[핵심 의미]'가 글의 흐름과 일치한다.\\n\\n①'[단어](뜻)'은 [왜 틀린지]. ②'[단어](뜻)'는 [왜 틀린지]. ③'[단어](뜻)'은 [왜 정답인지]. ④'[단어](뜻)'는 [왜 틀린지]. ⑤'[단어](뜻)'은 [왜 틀린지]."
 }
 
 **CRITICAL REMINDER:**
 - choices array contains ONLY the words: ["peaceful", "hostile", "chaotic", "isolated", "harsh"]
 - NEVER include: ["peaceful (정답)", "hostile (오답)", ...] ← WRONG!
-- NEVER include: ["단순한 단 성분 (오답)", "건강에 해로운 주범 (정답)", ...] ← WRONG!
 `;
 
 // ============================================
@@ -566,38 +638,37 @@ Example structure:
 
 Summary: [One sentence summary with (A) ______ and (B) ______ blanks]"
 
-**EXPLANATION REQUIREMENTS (CRITICAL):**
-The explanation must be structured with clear paragraphs AND include vocabulary help:
+**EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
-Paragraph 1: State the answer with Korean meanings
-"정답은 ③번 '(A) sweet(달콤한) - (B) popularity(인기)'입니다."
+**Paragraph 1 - 글 내용 요약:**
+"글은 [글의 핵심 내용을 간결하게 요약]. [요약문이 담아야 할 핵심 포인트 설명]."
 
-Paragraph 2: Explain (A) with evidence
-"본문에서 'its sugary taste appeals to many consumers'라고 했으므로 (A)에는 설탕의 맛을 나타내는 'sweet(달콤한)'이 적절합니다."
+**Paragraph 2 - (A) 정답 분석 (어휘 뜻 포함):**
+"(A)에는 '[정답A](한글뜻)'가 적절하다. 본문에서 '[A 관련 영어 문장 인용]'이라고 했는데, 이는 [왜 이 단어가 맞는지 설명]을 나타낸다."
 
-Paragraph 3: Explain (B) with evidence
-"또한 'it became one of the most consumed beverages worldwide'라고 했으므로 (B)에는 전 세계적인 인기를 나타내는 'popularity(인기)'가 적절합니다."
+**Paragraph 3 - (B) 정답 분석 (어휘 뜻 포함):**
+"(B)에는 '[정답B](한글뜻)'가 적절하다. 본문에서 '[B 관련 영어 문장 인용]'이라고 했는데, 이는 [왜 이 단어가 맞는지 설명]을 나타낸다."
 
-**VOCABULARY IN EXPLANATION (CRITICAL):**
-ALWAYS include Korean meanings for English words in parentheses:
-- "sweet(달콤한)", "bitter(쓴)", "sour(신)"
-- "popularity(인기)", "decline(쇠퇴)", "growth(성장)"
+**Paragraph 4 - 오답 분석 (어휘 뜻 포함):**
+"①'(A) [단어](뜻) - (B) [단어](뜻)'는 [왜 틀린지].
+②'(A) [단어](뜻) - (B) [단어](뜻)'는 [왜 틀린지].
+③'(A) [단어](뜻) - (B) [단어](뜻)'는 [왜 정답인지].
+④'(A) [단어](뜻) - (B) [단어](뜻)'는 [왜 틀린지].
+⑤'(A) [단어](뜻) - (B) [단어](뜻)'는 [왜 틀린지]."
 
-**CONNECTOR VARIATION (IMPORTANT):**
-Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
-- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
-- Or connect ideas directly without always using a connector
-- Natural flow is more important than formula
+**EXCELLENT EXAMPLE:**
+"글은 콜라 음료의 특성과 세계적인 성공을 설명한다. 단맛이 소비자에게 어필하고 전 세계적으로 사랑받는 음료가 되었다는 핵심 내용을 담고 있다.
 
-**GOOD EXAMPLE:**
-"정답은 ③번 '(A) sweet(달콤한) - (B) popularity(인기)'입니다.
+(A)에는 'sweet(달콤한)'가 적절하다. 본문에서 'its sugary taste appeals to many consumers'라고 했는데, 이는 설탕의 단맛이 소비자를 끌어들인다는 것을 나타낸다.
 
-본문에서 'its sugary taste appeals to many consumers'라고 했으므로 (A)에는 설탕의 맛을 나타내는 'sweet(달콤한)'이 적절합니다.
+(B)에는 'popularity(인기)'가 적절하다. 본문에서 'it became one of the most consumed beverages worldwide'라고 했는데, 이는 전 세계적인 인기와 소비량을 나타낸다.
 
-또한 'it became one of the most consumed beverages worldwide'라고 했으므로 (B)에는 전 세계적인 인기를 나타내는 'popularity(인기)'가 적절합니다."
+①'(A) bitter(쓴) - (B) decline(쇠퇴)'는 sugary taste가 단맛이므로 bitter와 맞지 않고, 세계적으로 사랑받았으므로 decline도 틀리다. ②'(A) sour(신) - (B) growth(성장)'는 A가 문맥과 맞지 않다. ③'(A) sweet(달콤한) - (B) popularity(인기)'는 본문의 핵심 내용과 정확히 일치한다. ④'(A) sweet(달콤한) - (B) criticism(비판)'는 B가 문맥과 반대된다. ⑤'(A) mild(순한) - (B) popularity(인기)'는 A가 sugary와 맞지 않다."
 
 **BAD EXAMPLE (DO NOT DO THIS):**
-"정답은 ③번입니다. (A)에는 sweet이, (B)에는 popularity가 적절합니다." ← 뜻도 없고 문단도 안 나눔!
+"정답은 ③번입니다. (A)에는 sweet이, (B)에는 popularity가 적절합니다." ← 뜻도 없고 분석도 없음!
+
+**VOCABULARY: ALWAYS include Korean meanings in parentheses: 'sweet(달콤한)'**
 
 **CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis. Use \\n\\n for paragraph breaks.**
 
@@ -700,26 +771,32 @@ Modified: "①Dogs are loyal companions. ②They sense their owners' emotions. �
 
 Why ③ is irrelevant: It's about dogs (same general topic), but discusses guide dog training (different specific topic), not emotional support benefits. A careless reader might think "it's about dogs, so it fits" - but it doesn't support the main argument.
 
-**EXPLANATION REQUIREMENTS:**
-1. **State the SPECIFIC ARGUMENT** (not just "이 글은 스타벅스에 대한 글입니다")
-   - BAD: "이 글은 스타벅스에 대한 글입니다"
-   - GOOD: "이 글은 '스타벅스가 매장 디자인을 통해 고객 경험을 창출하는 방법'에 대해 논하고 있습니다"
+**EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
-2. **Explain why other sentences support this argument**
-   - "①②④⑤번 문장은 모두 [구체적 논지]를 뒷받침하는 내용입니다"
+**Paragraph 1 - 글의 구체적 논지:**
+"글은 '[구체적이고 명확한 논지]'에 대해 논한다. [글의 흐름과 논리 구조 설명]."
 
-3. **Explain what the irrelevant sentence discusses and why it doesn't fit**
-   - Type 1 (Different sub-topic): "③번은 [같은 주제]에 대한 내용이지만 '[다른 세부 주제]'를 다루고 있어 글의 흐름과 맞지 않습니다"
-   - Type 2 (Contradicts): "③번은 [구체적 논지]와 반대되는 내용으로 논리적 흐름을 해칩니다"
-   - Type 3 (Tangential): "③번은 [관련 영역]에 대한 내용이지만 [구체적 논지]를 지원하지 않습니다"
+**Paragraph 2 - 정답(무관한 문장) 분석:**
+"③번은 [같은 주제 영역]에 대한 내용이지만, '[구체적 논지]'와 직접적인 관련이 없다. [왜 무관한지 구체적 설명 - 예: 다른 세부 주제를 다루거나, 논지와 반대되거나, 논지를 지원하지 않는다]."
 
-**CONNECTOR VARIATION (IMPORTANT):**
-Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
-- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉", "반면"
-- Or connect ideas directly without always using a connector
-- Natural flow is more important than formula
+**Paragraph 3 - 나머지 문장 분석 (각각 왜 글의 흐름에 맞는지):**
+"①번은 [어떤 내용]으로 글의 [역할 - 예: 도입부/주제 제시]를 한다.
+②번은 [어떤 내용]으로 [논지를 어떻게 뒷받침하는지].
+③번은 [왜 무관한지 - 정답이므로 이미 설명함].
+④번은 [어떤 내용]으로 [논지를 어떻게 뒷받침하는지].
+⑤번은 [어떤 내용]으로 [글의 마무리/결론 역할]을 한다."
 
-**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
+**EXCELLENT EXAMPLE:**
+"글은 '개가 주인에게 정서적 지지를 제공하는 방법'에 대해 논한다. 개의 충성심, 감정 인식 능력, 스트레스 감소 효과, 옥시토신 분비 등 정서적 유대의 다양한 측면을 설명한다.
+
+③번은 '안내견 훈련 기간'에 대한 내용으로, 개라는 같은 주제이지만 '정서적 지지'라는 구체적 논지와 직접적인 관련이 없다. 안내견 훈련은 실용적/기능적 측면이지 정서적 유대와는 다른 세부 주제이다.
+
+①번은 '개는 충성스러운 동반자'라는 내용으로 정서적 유대의 기반을 제시한다. ②번은 '개가 주인의 감정을 인식한다'는 내용으로 정서적 연결을 뒷받침한다. ③번은 안내견 훈련에 관한 내용으로 정서적 지지 논지와 무관하다. ④번은 '개 주인의 스트레스 수준이 낮다'는 연구 결과로 정서적 효과를 입증한다. ⑤번은 '옥시토신 분비'로 정서적 유대의 과학적 근거를 제시한다."
+
+**BAD EXAMPLE (DO NOT DO THIS):**
+"정답은 ③번입니다. 이 글은 개에 대한 글입니다. ③번은 흐름과 맞지 않습니다." ← 구체적 논지도 없고 분석도 없음!
+
+**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
 
 **Output (JSON only):**
 {
@@ -727,7 +804,7 @@ Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
   "modifiedPassage": "①First sentence. ②Second sentence. ③Third sentence (irrelevant). ④Fourth sentence. ⑤Fifth sentence.",
   "choices": ["①", "②", "③", "④", "⑤"],
   "answer": 3,
-  "explanation": "정답은 ③번입니다. 이 글은 '[구체적이고 명확한 논지]'에 대해 논하고 있습니다. ①②④⑤번 문장은 모두 [구체적 논지]를 뒷받침하는 내용인 반면, ③번 문장은 [같은 주제 영역]에 대한 내용이지만 '[왜 무관한지 구체적으로]'하여 글의 논리적 흐름과 맞지 않습니다."
+  "explanation": "글은 '[구체적 논지]'에 대해 논한다. [흐름 설명].\\n\\n③번은 [같은 주제]에 대한 내용이지만, '[논지]'와 직접적인 관련이 없다. [왜 무관한지].\\n\\n①번은 [역할]. ②번은 [역할]. ③번은 [무관한 이유]. ④번은 [역할]. ⑤번은 [역할]."
 }
 `;
 
@@ -748,28 +825,31 @@ Create a question asking where a given sentence fits best.
 **Passage:**
 {passage}
 
-**EXPLANATION REQUIREMENTS (CRITICAL):**
-The explanation must include:
-1. The answer number and position (e.g., "②번 (B)")
-2. Quote the sentence BEFORE the insertion point
-3. Quote the sentence AFTER the insertion point
-4. Explain the logical connection: Why does the given sentence fit between these two?
-5. Mention discourse markers, pronouns, or logical flow that support the answer
-6. Do NOT just say "이 위치가 자연스럽습니다" - explain WHY
+**EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
-**CONNECTOR VARIATION (IMPORTANT):**
-Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
-- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
-- Or connect ideas directly without always using a connector
-- Natural flow is more important than formula
+**Paragraph 1 - 글의 흐름 파악:**
+"글은 [글의 전체 흐름을 간결하게 설명]. 주어진 문장 '[삽입 문장]'은 [이 문장의 역할 - 예: 반론/예시/결과/원인 제시]를 한다."
 
-**GOOD EXAMPLE:**
-"정답은 ②번 (B)입니다. (B) 앞 문장에서 'Scientists discovered a new method'라고 새로운 방법의 발견을 언급했고, 주어진 문장 'However, this approach had limitations'은 그 방법의 한계를 설명합니다. 그리고 (B) 뒤 문장 'Therefore, they sought alternatives'는 대안을 찾게 된 이유를 설명하므로, 주어진 문장이 (B)에 들어가야 논리적 흐름이 완성됩니다."
+**Paragraph 2 - 정답 위치 분석 (앞뒤 문장 연결):**
+"(B) 앞 문장에서 '[앞 문장 내용 인용]'이라고 했고, 주어진 문장은 [어떻게 연결되는지 - 예: 이에 대한 반론을 제시한다]. 그리고 (B) 뒤 문장 '[뒤 문장 내용]'은 [어떻게 이어지는지 - 예: 그 결과를 설명한다]. [담화 표지어나 대명사가 있다면 언급]."
+
+**Paragraph 3 - 다른 위치가 안 되는 이유:**
+"(A)에 넣으면 [왜 안 맞는지].
+(B)에 넣으면 [왜 정답인지 - 앞뒤 문장과 논리적으로 연결된다].
+(C)에 넣으면 [왜 안 맞는지].
+(D)에 넣으면 [왜 안 맞는지]."
+
+**EXCELLENT EXAMPLE:**
+"글은 과학자들이 새로운 방법을 발견했지만 한계가 있어 대안을 찾게 된 과정을 설명한다. 주어진 문장 'However, this approach had limitations'은 앞서 언급된 방법의 한계를 지적하는 역할을 한다.
+
+(B) 앞 문장에서 'Scientists discovered a new method'라고 새로운 방법의 발견을 언급했고, 주어진 문장은 'However'로 시작하여 그 방법의 한계를 설명한다. 그리고 (B) 뒤 문장 'Therefore, they sought alternatives'는 한계 때문에 대안을 찾게 되었음을 설명한다. 'However'라는 역접 연결어가 앞 문장의 긍정적 발견과 한계라는 부정적 측면을 연결하고, 'Therefore'가 그 결과를 이끌어낸다.
+
+(A)에 넣으면 아직 방법이 언급되기 전이라 'this approach'가 가리킬 대상이 없다. (B)에 넣으면 방법 발견 → 한계 → 대안 탐색이라는 논리적 흐름이 완성된다. (C)에 넣으면 이미 대안을 찾은 후라 시간 순서가 맞지 않다. (D)에 넣으면 결론 부분에 한계를 언급하는 것이 어색하다."
 
 **BAD EXAMPLE (DO NOT DO THIS):**
-"정답은 ②번 (B)입니다. 이 위치가 가장 자연스럽습니다." ← 이런 식으로 하지 마세요!
+"정답은 ②번 (B)입니다. 이 위치가 가장 자연스럽습니다." ← 이유 없이 너무 짧음!
 
-**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
+**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
 
 **Output (JSON only):**
 {
@@ -778,7 +858,7 @@ Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
   "sentenceToInsert": "The sentence to be inserted",
   "choices": ["(A)", "(B)", "(C)", "(D)"],
   "answer": 2,
-  "explanation": "정답은 ②번 (B)입니다. (B) 앞 문장에서 '[앞 문장 내용]'이라고 했고, 주어진 문장 '[삽입 문장]'은 [연결 설명]. 그리고 (B) 뒤 문장 '[뒤 문장 내용]'으로 이어지므로 논리적 흐름이 완성됩니다."
+  "explanation": "글은 [전체 흐름]. 주어진 문장 '[삽입 문장]'은 [역할].\\n\\n(B) 앞 문장에서 '[앞 문장]'이라고 했고, 주어진 문장은 [연결]. (B) 뒤 문장 '[뒤 문장]'은 [연결]. [담화 표지어 설명].\\n\\n(A)에 넣으면 [이유]. (B)에 넣으면 [정답 이유]. (C)에 넣으면 [이유]. (D)에 넣으면 [이유]."
 }
 `;
 
@@ -818,36 +898,40 @@ WRONG FORMAT (DO NOT DO THIS):
 
 [paragraph content] (B)  ← WRONG!"
 
-**EXPLANATION REQUIREMENTS (CRITICAL):**
-The explanation must include:
-1. The answer number and the correct order (e.g., "③번 '(B)-(C)-(A)'")
-2. Explain WHY the first paragraph comes first (connecting to the intro)
-3. Explain WHY the second paragraph follows (connection between them)
-4. Explain WHY the third paragraph comes last (conclusion/logical ending)
-5. Point out specific discourse markers, pronouns, or logical links
-6. Do NOT just say "논리적 흐름상 자연스럽습니다" - explain the actual connections
+**EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
-**CONNECTOR VARIATION (IMPORTANT):**
-Avoid repetitive use of "따라서" in your explanation. Use varied connectors:
-- "그러므로", "이처럼", "이런 맥락에서", "결국", "즉"
-- Or connect ideas directly without always using a connector
-- Natural flow is more important than formula
+**Paragraph 1 - 주어진 글과 첫 번째 단락 연결:**
+"주어진 글에서 '[주어진 글 핵심 내용]'을 언급했다. (B)는 '[첫 문장/핵심 내용]'으로 시작하는데, '[담화 표지어/대명사]'가 주어진 글의 [무엇]을 가리키므로 주어진 글 바로 다음에 와야 한다."
 
-**GOOD EXAMPLE:**
-"정답은 ③번 '(B)-(C)-(A)'입니다. 주어진 글에서 새로운 기술의 등장을 언급했으므로, 먼저 (B)가 와야 합니다. (B)에서 'This technology'라고 했는데, 이는 주어진 글의 기술을 가리킵니다. 다음으로 (C)는 'However'로 시작하여 (B)의 내용에 대한 반론을 제시합니다. 마지막으로 (A)는 'Therefore'로 시작하여 결론을 내리므로 가장 마지막에 와야 합니다."
+**Paragraph 2 - 두 번째, 세 번째 단락 연결:**
+"(C)는 '[연결 표현]'으로 시작하여 (B)의 내용에 대한 [역할 - 예: 반론/보충/예시]를 제시한다. (A)는 '[연결 표현]'으로 시작하여 [역할 - 예: 결론/요약]을 내리므로 가장 마지막에 와야 한다."
+
+**Paragraph 3 - 다른 순서가 안 되는 이유:**
+"(A)-(C)-(B)는 [왜 안 되는지 - 예: 결론이 먼저 나와서 논리 순서가 맞지 않다].
+(B)-(A)-(C)는 [왜 안 되는지].
+(B)-(C)-(A)는 [왜 정답인지 - 논리적 흐름이 완성된다].
+(C)-(A)-(B)는 [왜 안 되는지].
+(C)-(B)-(A)는 [왜 안 되는지]."
+
+**EXCELLENT EXAMPLE:**
+"주어진 글에서 '새로운 기술의 등장'을 언급했다. (B)는 'This technology has revolutionized...'로 시작하는데, 'This technology'가 주어진 글에서 언급한 기술을 직접 가리키므로 주어진 글 바로 다음에 와야 한다.
+
+(C)는 'However'로 시작하여 (B)에서 설명한 기술의 장점에 대한 반론(한계점)을 제시한다. (A)는 'Therefore'로 시작하여 장단점을 종합한 결론을 내리므로 가장 마지막에 와야 한다.
+
+(A)-(C)-(B)는 결론(A)이 먼저 나와서 논리 순서가 맞지 않다. (B)-(A)-(C)는 결론(A) 다음에 반론(C)이 나와서 흐름이 어색하다. (B)-(C)-(A)는 기술 설명 → 한계 → 결론이라는 논리적 흐름이 완성된다. (C)-(A)-(B)는 반론이 먼저 나오는데 무엇에 대한 반론인지 불분명하다. (C)-(B)-(A)는 반론이 기술 설명보다 앞서 나와서 어색하다."
 
 **BAD EXAMPLE (DO NOT DO THIS):**
-"정답은 ③번입니다. 논리적 흐름상 자연스럽습니다." ← 이런 식으로 하지 마세요!
+"정답은 ③번입니다. 논리적 흐름상 자연스럽습니다." ← 이유 없이 너무 짧음!
 
-**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.**
+**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
 
 **Output (JSON only):**
 {
   "question": "주어진 글 다음에 이어질 글의 순서로 가장 적절한 것은?",
-  "modifiedPassage": "Given: [intro paragraph]\\n\\n(A) [paragraph A content starting right after the label]\\n\\n(B) [paragraph B content starting right after the label]\\n\\n(C) [paragraph C content starting right after the label]",
+  "modifiedPassage": "Given: [intro paragraph]\\n\\n(A) [paragraph A content]\\n\\n(B) [paragraph B content]\\n\\n(C) [paragraph C content]",
   "choices": ["(A)-(C)-(B)", "(B)-(A)-(C)", "(B)-(C)-(A)", "(C)-(A)-(B)", "(C)-(B)-(A)"],
   "answer": 3,
-  "explanation": "정답은 ③번 '(B)-(C)-(A)'입니다. 주어진 글에서 [주어진 글 내용]을 언급했으므로, 먼저 (B)가 와야 합니다. (B)에서 '[연결 표현]'이라고 했는데, 이는 [연결 설명]. 다음으로 (C)는 '[연결 표현]'으로 시작하여 [연결 설명]. 마지막으로 (A)는 '[연결 표현]'으로 시작하여 [결론 설명]이므로 가장 마지막에 와야 합니다."
+  "explanation": "주어진 글에서 '[내용]'을 언급했다. (B)는 '[내용]'으로 시작하는데, '[표지어]'가 [연결].\\n\\n(C)는 '[표지어]'로 시작하여 [역할]. (A)는 '[표지어]'로 시작하여 [역할].\\n\\n(A)-(C)-(B)는 [이유]. (B)-(A)-(C)는 [이유]. (B)-(C)-(A)는 [정답 이유]. (C)-(A)-(B)는 [이유]. (C)-(B)-(A)는 [이유]."
 }
 `;
 

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { checkRateLimit, getClientIP, API_RATE_LIMITS } from '@/lib/rate-limit';
+import { logPurchase } from '@/lib/activity-logger';
 
 const tossSecretKey = process.env.TOSS_SECRET_KEY!;
 
@@ -180,7 +181,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 5. Return success response
+    // 5. Log purchase activity (non-blocking)
+    logPurchase(request, order.user_id, orderId, amount, order.coins).catch(err => {
+      console.error('Failed to log purchase activity:', err);
+    });
+
+    // 6. Return success response
     return NextResponse.json({
       success: true,
       orderId,

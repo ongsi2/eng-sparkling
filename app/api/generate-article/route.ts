@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { createArticlePrompt, ArticleRequest, ArticleResponse } from '@/lib/article-prompts';
 import { checkRateLimit, getClientIP, API_RATE_LIMITS } from '@/lib/rate-limit';
 import { checkDemoUsage, incrementDemoUsage, getClientIP as getDemoClientIP } from '@/lib/demo';
+import { getFromCache, saveToCache } from '@/lib/generation-cache';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -73,6 +74,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 캐시 입력 데이터 (정렬된 키워드 사용)
+    const sortedKeywords = [...keywords].sort();
+    const cacheInput = {
+      keywords: sortedKeywords,
+      difficulty,
+      wordCount,
+    };
+
+    // 캐시에서 먼저 확인
+    const cacheResult = await getFromCache<ArticleResponse>('article', cacheInput);
+    if (cacheResult.hit) {
+      // Demo mode: 캐시 히트도 사용 횟수에 포함
+      if (demo) {
+        const ip = getDemoClientIP(request);
+        await incrementDemoUsage(ip);
+      }
+
+      return NextResponse.json({
+        ...cacheResult.data,
+        cached: true, // 클라이언트에게 캐시된 결과임을 알림
+      });
+    }
+
     // Create prompt
     const prompt = createArticlePrompt({ keywords, difficulty, wordCount });
 
@@ -128,6 +152,9 @@ export async function POST(request: NextRequest) {
       const ip = getDemoClientIP(request);
       await incrementDemoUsage(ip);
     }
+
+    // 캐시에 저장 (비동기, 에러 무시)
+    saveToCache('article', cacheInput, articleData).catch(() => {});
 
     return NextResponse.json(articleData);
   } catch (error: any) {

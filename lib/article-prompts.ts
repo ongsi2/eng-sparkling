@@ -37,6 +37,17 @@ You are an expert English content writer specializing in creating educational ar
    - Well-developed body
    - Brief conclusion (if word count allows)
 
+6. **Title Diversity (VERY IMPORTANT):**
+   - DO NOT start titles with "The Joy of...", "The Wonders of...", "The Benefits of...", "The Power of...", "The Magic of..."
+   - Use DIVERSE title patterns:
+     - Question format: "Why Do Birds Migrate South?"
+     - Statement: "Climate Change Reshapes Arctic Ecosystems"
+     - How-to: "How Bees Communicate Through Dance"
+     - Noun phrase: "Silent Guardians: The Role of Trees in Urban Areas"
+     - Action-focused: "Breaking Barriers in Modern Medicine"
+     - Descriptive: "A Day in the Life of a Marine Biologist"
+   - Be creative and varied - each article should have a unique title style
+
 **Input:**
 - Keywords: {keywords}
 - Difficulty: {difficulty}
@@ -64,7 +75,7 @@ Output:
   "wordCount": 298,
   "keywords": ["artificial intelligence", "healthcare", "diagnosis"],
   "difficulty": "고3",
-  "title": "The Role of Artificial Intelligence in Modern Healthcare Diagnosis"
+  "title": "When Machines Become Doctors: AI Transforms Medical Diagnosis"
 }
 
 **Critical Rules:**
@@ -74,6 +85,7 @@ Output:
 - Match the difficulty level vocabulary
 - IMPORTANT: Separate paragraphs with double newlines (\\n\\n) in the JSON
 - Return ONLY valid JSON, no markdown
+- NEVER use cliché titles like "The Joy of...", "The Wonders of...", "The Benefits of..." - be creative!
 
 Generate the article now:
 `;

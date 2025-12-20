@@ -6,6 +6,7 @@ import { DEMO_PASSAGE, DEMO_QUESTIONS, QUESTION_TYPES, QuestionType } from '@/da
 import { useAuth } from '@/app/components/AuthProvider';
 import AuthButton from '@/app/components/AuthButton';
 import CoinDisplay from '@/app/components/CoinDisplay';
+import UserAvatar from '@/app/components/UserAvatar';
 import { PDFExportButton } from '@/app/components/PDFExportButton';
 
 // Sparkling Logo Component - Premium Modern Design
@@ -113,6 +114,7 @@ export default function Home() {
   const [selectedType, setSelectedType] = useState<QuestionType | null>(null);
   const [showQuestion, setShowQuestion] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const handleTypeClick = (type: QuestionType) => {
     setSelectedType(type);
@@ -149,10 +151,10 @@ export default function Home() {
             <div className="w-24 h-8 bg-[var(--color-cream-dark)] rounded-full animate-pulse" />
           ) : user ? (
             <div className="flex items-center gap-2 md:gap-3">
-              {/* 문제 생성 버튼 - 모바일에서는 하단 nav 사용 */}
+              {/* 문제 생성 버튼 - 메인 CTA */}
               <Link
                 href="/workflow"
-                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] hover:bg-[var(--color-spark)]/5 transition-all"
+                className="hidden md:flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-[var(--color-spark)] to-[var(--color-mint)] hover:opacity-90 transition-all shadow-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -160,35 +162,70 @@ export default function Home() {
                 문제 생성
               </Link>
 
-              {/* 저장함 버튼 - 모바일에서는 하단 nav 사용 */}
-              <Link
-                href="/archive"
-                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-[var(--color-text-muted)] hover:text-[var(--color-spark)] hover:bg-[var(--color-spark)]/5 transition-all"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
-                저장함
-              </Link>
-
               {/* 구분선 - 모바일에서 숨김 */}
               <div className="hidden md:block h-5 w-px bg-[var(--color-ink)]/10" />
 
               {/* 코인 영역 */}
               <CoinDisplay />
-              {/* 충전 버튼 - 데스크톱만 */}
-              <Link
-                href="/payment"
-                className="hidden sm:block px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full transition-colors"
-              >
-                충전
-              </Link>
 
-              {/* 구분선 */}
-              <div className="h-5 w-px bg-[var(--color-ink)]/10" />
+              {/* 사용자 드롭다운 메뉴 */}
+              <div className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--color-cream-dark)]/50 transition-colors"
+                >
+                  <UserAvatar user={user} size="md" />
+                  <svg className={`hidden md:block w-4 h-4 text-[var(--color-text-muted)] transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-              {/* 사용자 영역 */}
-              <AuthButton />
+                {/* 드롭다운 메뉴 */}
+                {userMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-[var(--color-cream-dark)] py-2 z-50">
+                      <div className="px-4 py-2 border-b border-[var(--color-cream-dark)]">
+                        <p className="text-xs text-[var(--color-text-muted)]">로그인 계정</p>
+                        <p className="text-sm font-medium text-[var(--color-ink)] truncate">{user.email}</p>
+                      </div>
+                      <Link
+                        href="/archive"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--color-ink)] hover:bg-[var(--color-cream)] transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <svg className="w-4 h-4 text-[var(--color-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                        </svg>
+                        저장함
+                      </Link>
+                      <Link
+                        href="/credit-history"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--color-ink)] hover:bg-[var(--color-cream)] transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <svg className="w-4 h-4 text-[var(--color-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        크레딧 내역
+                      </Link>
+                      <Link
+                        href="/payment"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--color-ink)] hover:bg-[var(--color-cream)] transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <svg className="w-4 h-4 text-[var(--color-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        코인 충전
+                      </Link>
+                      <div className="border-t border-[var(--color-cream-dark)] mt-2 pt-2">
+                        <AuthButton compact onAction={() => setUserMenuOpen(false)} />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           ) : (
             <Link href="/login" className="btn-spark text-sm px-4 py-2">

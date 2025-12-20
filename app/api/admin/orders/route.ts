@@ -22,8 +22,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
+    const status = searchParams.get('status') || undefined;
+    const startDate = searchParams.get('startDate') || undefined;
+    const endDate = searchParams.get('endDate') || undefined;
 
-    const result = await getOrders(page, pageSize);
+    const filters = { status, startDate, endDate };
+    const result = await getOrders(page, pageSize, filters);
 
     return NextResponse.json(result);
   } catch (error: any) {

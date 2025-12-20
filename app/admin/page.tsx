@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react';
 import { CoinIcon } from '@/app/components/CoinDisplay';
 import { supabase } from '@/lib/supabase';
 
+interface PeriodStat {
+  users: number;
+  revenue: number;
+  questions: number;
+}
+
 interface AdminStats {
   totalUsers: number;
   activeUsersToday: number;
@@ -11,6 +17,11 @@ interface AdminStats {
   totalRevenue: number;
   totalCoinsIssued: number;
   totalQuestionsGenerated: number;
+  periodStats?: {
+    today: PeriodStat;
+    week: PeriodStat;
+    month: PeriodStat;
+  };
 }
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
@@ -160,6 +171,45 @@ export default function AdminDashboard() {
         })}
       </div>
 
+      {/* Period Stats */}
+      {stats?.periodStats && (
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">기간별 통계</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">기간</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">신규 가입</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">매출</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">생성 문제</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                <tr className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">오늘</td>
+                  <td className="px-4 py-3 text-sm text-right text-blue-600 font-semibold">{stats.periodStats.today.users}명</td>
+                  <td className="px-4 py-3 text-sm text-right text-green-600 font-semibold">₩{stats.periodStats.today.revenue.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm text-right text-purple-600 font-semibold">{stats.periodStats.today.questions}개</td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">이번 주</td>
+                  <td className="px-4 py-3 text-sm text-right text-blue-600 font-semibold">{stats.periodStats.week.users}명</td>
+                  <td className="px-4 py-3 text-sm text-right text-green-600 font-semibold">₩{stats.periodStats.week.revenue.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm text-right text-purple-600 font-semibold">{stats.periodStats.week.questions}개</td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">이번 달</td>
+                  <td className="px-4 py-3 text-sm text-right text-blue-600 font-semibold">{stats.periodStats.month.users}명</td>
+                  <td className="px-4 py-3 text-sm text-right text-green-600 font-semibold">₩{stats.periodStats.month.revenue.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm text-right text-purple-600 font-semibold">{stats.periodStats.month.questions}개</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Quick Links */}
       <div className="bg-white rounded-xl p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">빠른 관리</h2>
@@ -206,6 +256,37 @@ export default function AdminDashboard() {
             <div>
               <p className="font-medium text-gray-900">생성 로그</p>
               <p className="text-sm text-gray-500">문제 생성 기록</p>
+            </div>
+          </a>
+
+          <a
+            href="/admin/demo"
+            className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-[var(--color-spark)] hover:bg-[var(--color-spark)]/5 transition-colors"
+          >
+            <div className="p-2 bg-orange-50 rounded-lg text-orange-600">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">데모 관리</p>
+              <p className="text-sm text-gray-500">무료 체험 관리</p>
+            </div>
+          </a>
+
+          <a
+            href="/admin/products"
+            className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-[var(--color-spark)] hover:bg-[var(--color-spark)]/5 transition-colors"
+          >
+            <div className="p-2 bg-amber-50 rounded-lg text-amber-600">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">요금제 관리</p>
+              <p className="text-sm text-gray-500">코인 상품 설정</p>
             </div>
           </a>
 
