@@ -1,46 +1,56 @@
+============================================================
+ENG-SPARKLING 문제 생성 테스트
+API: http://localhost:3000
+============================================================
 
-# 품질 평가 및 개선 리포트
-생성일: 2025-12-20T07:58:38.680Z
+Testing GRAMMAR_INCORRECT...
+  ✅ PASS
+     Question: 다음 글의 밑줄 친 부분 중, 어법상 틀린 것은?...
 
-## 평균 점수
-- 아티클: 8.0/10
-- 문제: 7.0/10
-- 해설: 5.0/10
+Testing SELECT_INCORRECT_WORD...
+  ✅ PASS
+     Question: 다음 글의 밑줄 친 부분 중, 문맥상 낱말의 쓰임이 적절하지 않은 것은?...
 
-## 발견된 이슈 (9개)
-1. Explanation does not have 3 paragraphs.
-2. Not all 5 choices are analyzed.
-3. Issue 1: Not all key terms are explained with Korean meanings, such as 'prove(증명하다)'.
-4. Issue 2: The explanation does not have 3 paragraphs; it is not clearly structured into separate concise segments.
-5. Issue 3: Not all 5 choices are analyzed thoroughly in the explanation.
-6. Issue 4: The answer isn't confirmed as definitely correct due to lack of detailed justification.
-7. Issue 5: The explanation does not specify what each word modifies, leading to possible ambiguity.
-8. Explanation does not have 3 paragraphs.
-9. Not all 5 choices are analyzed.
+Testing PICK_UNDERLINE...
+  ✅ PASS
+     Question: 밑줄 친 부분이 의미하는 바로 가장 적절한 것은?...
 
-## 카테고리별 분석
-### MISSING_STRUCTURE (3회)
-**MANDATORY 3-PARAGRAPH STRUCTURE:**
-Paragraph 1: 글 내용 요약 (2-3문장)
-Paragraph 2: 정답 분석 + 무엇을 수식하는지 명시
-Paragraph 3: 모든 5개 선지 분석 (①②③④⑤)
+Testing PICK_SUBJECT...
+  ✅ PASS
+     Question: 다음 글의 주제로 가장 적절한 것은?...
 
-Separate each paragraph with \n\n
+Testing PICK_TITLE...
+  ✅ PASS
+     Question: 다음 글의 제목으로 가장 적절한 것은?...
 
-### MISSING_KOREAN (1회)
-**MANDATORY: Include Korean meaning for EVERY word in parentheses.**
-Example: 'prove(증명하다)', 'disprove(반증하다)'
-Your response will be REJECTED if any word lacks Korean translation.
+Testing CORRECT_ANSWER...
+  ✅ PASS
+     Question: 다음 글의 내용과 일치하는 것은?...
 
-### MISSING_MODIFIER (1회)
-**MANDATORY: Specify what each word MODIFIES.**
-BAD: "'soggy'는 부정확하다"
-GOOD: "'soggy'는 **토스트의 식감**을 설명하는데, 굽는 결과와 맞지 않다"
+Testing INCORRECT_ANSWER...
+  ✅ PASS
+     Question: 다음 글의 내용과 일치하지 않는 것은?...
 
-Always bold the modified target: **[무엇]**
+Testing BLANK_WORD...
+  ✅ PASS
+     Question: 다음 빈칸에 들어갈 말로 가장 적절한 것은?...
 
+Testing COMPLETE_SUMMARY...
+  ✅ PASS
+     Question: 다음 글의 내용을 한 문장으로 요약하고자 한다. 빈칸 (A), (B)에 들어갈 말로 가장 ...
 
-## 권장 조치
-- [ ] MISSING_STRUCTURE 수정 적용
-- [ ] MISSING_KOREAN 수정 적용
-- [ ] MISSING_MODIFIER 수정 적용
+Testing IRRELEVANT_SENTENCE...
+  ✅ PASS
+     Question: 다음 글에서 전체 흐름과 관계 없는 문장은?...
+
+Testing INSERT_SENTENCE...
+  ✅ PASS
+     Question: 글의 흐름으로 보아, 주어진 문장이 들어가기에 가장 적절한 곳은?...
+
+Testing SENTENCE_ORDER...
+  ✅ PASS
+     Question: 주어진 글 다음에 이어질 글의 순서로 가장 적절한 것은?...
+
+============================================================
+결과: 12 passed, 0 failed
+============================================================

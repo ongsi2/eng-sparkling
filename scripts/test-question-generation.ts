@@ -84,13 +84,33 @@ function validateAnswer(question: GeneratedQuestion): string[] {
     issues.push(`answer 범위 오류: ${question.answer} (1-${maxChoices})`);
   }
 
-  // explanation에 정답 번호 포함 여부
-  const answerMentions = [
-    `${question.answer}번`,
-    `정답은 ${question.answer}`,
-    `②③④⑤`.charAt(question.answer - 1),
-  ];
-  const hasAnswerMention = answerMentions.some(m => question.explanation.includes(m));
+  // explanation에 정답 번호 포함 여부 (유형별로 다르게 체크)
+  let hasAnswerMention = false;
+
+  if (question.questionType === 'INSERT_SENTENCE') {
+    // INSERT_SENTENCE는 (A), (B), (C), (D) 형식
+    const letters = ['(A)', '(B)', '(C)', '(D)'];
+    hasAnswerMention = question.explanation.includes(letters[question.answer - 1]);
+  } else if (question.questionType === 'SENTENCE_ORDER') {
+    // SENTENCE_ORDER는 순서 조합 형식 (예: (B)-(C)-(A))
+    hasAnswerMention = question.explanation.includes('(A)') &&
+                       question.explanation.includes('(B)') &&
+                       question.explanation.includes('(C)');
+  } else if (question.questionType === 'COMPLETE_SUMMARY') {
+    // COMPLETE_SUMMARY는 (A), (B) 빈칸 형식
+    hasAnswerMention = question.explanation.includes('(A)') &&
+                       question.explanation.includes('(B)');
+  } else {
+    // 일반 유형: ①②③④⑤ 또는 "N번" 형식
+    const circledNumbers = ['①', '②', '③', '④', '⑤'];
+    const answerMentions = [
+      `${question.answer}번`,
+      `정답은 ${question.answer}`,
+      circledNumbers[question.answer - 1],
+    ];
+    hasAnswerMention = answerMentions.some(m => question.explanation.includes(m));
+  }
+
   if (!hasAnswerMention) {
     issues.push('해설에 정답 번호 미포함');
   }
@@ -145,7 +165,7 @@ async function testQuestionGeneration(type: string, passage: string): Promise<Te
       body: JSON.stringify({
         passage,
         questionType: type,
-        demo: true, // 데모 모드로 테스트
+        // demo 모드 비활성화 - 테스트용
       }),
     });
 
@@ -203,7 +223,7 @@ async function main() {
     'SENTENCE_ORDER',
   ];
 
-  const typesToTest = targetType ? [targetType] : allTypes.slice(0, 3); // 기본은 3개만
+  const typesToTest = targetType === 'FULL' ? allTypes : (targetType ? [targetType] : allTypes.slice(0, 3)); // FULL이면 전체
 
   console.log('='.repeat(60));
   console.log('ENG-SPARKLING 문제 생성 테스트');

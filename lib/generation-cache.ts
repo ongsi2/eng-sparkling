@@ -61,7 +61,10 @@ export async function getFromCache<T>(
     }
 
     // 캐시 히트 카운트 업데이트 (비동기, 에러 무시)
-    supabaseAdmin.rpc('update_cache_hit', { p_cache_key: cacheKey }).then(() => {}).catch(() => {});
+    supabaseAdmin.rpc('update_cache_hit', { p_cache_key: cacheKey }).then(
+      () => {},
+      () => {}
+    );
 
     console.log(`[Cache HIT] ${cacheType} - key: ${cacheKey.slice(0, 20)}... (hits: ${data.hit_count + 1})`);
 

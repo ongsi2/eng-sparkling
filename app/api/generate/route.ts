@@ -286,7 +286,7 @@ export async function POST(request: NextRequest) {
       // 활동 로그 (캐시에서)
       const user = await getUserFromRequest(request);
       if (user) {
-        logGenerate(user.id, questionType, request, true).catch(() => {});
+        logGenerate(request, user.id, questionType, true).catch(() => {});
       }
 
       return NextResponse.json({

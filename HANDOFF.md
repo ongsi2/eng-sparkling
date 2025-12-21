@@ -33,7 +33,39 @@
 | API 캐싱 시스템 | ✅ | `lib/generation-cache.ts`, `007_generation_cache.sql` |
 | 헤더 드롭다운 | ✅ | `UserAvatar.tsx`, 각 페이지 헤더 |
 
-### 🔧 최근 수정 (2025-12-20)
+### 🔧 최근 수정 (2025-12-21) - 전체 점검 세션
+
+#### TypeScript 오류 수정
+- **`app/api/generate/route.ts`**: `logGenerate` 함수 인자 순서 수정
+- **`lib/generation-cache.ts`**: Supabase RPC Promise 처리 수정
+- **결과**: `npx tsc --noEmit` 0 errors
+
+#### 12개 문제 유형 전체 테스트
+- **테스트 스크립트**: `scripts/test-question-generation.ts`
+- **결과**: 12/12 통과
+- **개선**:
+  - `FULL` 파라미터로 전체 테스트
+  - 유형별 검증 로직 세분화
+
+#### 수능 기출 데이터 수집
+- **출처**: peshare.com, legendstudy.com
+- **수집 유형**: 20번(주제), 21번(밑줄), 29번(어법), 30번(어휘), 31번(빈칸), 35번(무관), 36번(순서), 38번(삽입)
+- **생성 파일**: `data/suneung-reference.md`
+
+#### 프롬프트 Few-shot 예시 추가
+- **`lib/all-prompts.ts`**:
+  - GRAMMAR_INCORRECT: 2024 수능 29번 예시
+  - SELECT_INCORRECT_WORD: 2024 수능 30번 예시
+
+#### 검증 스킬 개선
+- **`.claude/commands/validate-question.md`**: 유형별 체크리스트, 수능 기출 예시 추가
+
+#### 세션 리포트
+- **`SESSION-REPORT-2025-12-21.md`**: 전체 작업 내역 정리
+
+---
+
+### 🔧 이전 수정 (2025-12-20)
 
 #### 마커 순서 정렬 버그 수정
 - **문제**: SELECT_INCORRECT_WORD, GRAMMAR_INCORRECT에서 ①②③④⑤가 지문 순서대로 안 나옴

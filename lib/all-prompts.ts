@@ -78,6 +78,12 @@ Return a JSON with markers array. Each marker object must have:
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ③번입니다. 'understanding'을 'understand'로 고쳐야 합니다." ← 너무 짧고 분석이 없음!
 
+**REAL 수능 EXAMPLE (2024학년도 29번):**
+Passage: "A number of studies provide substantial evidence of an innate human disposition to respond differentially to social stimuli. From birth, infants will orient preferentially towards the human face and voice, ① seeming to know that such stimuli are particularly meaningful for them. They will even try to match gestures ② which they have some difficulty, experimenting with their own faces. When they ③ do succeed, they show pleasure; when they fail, they show distress. They have an innate capacity for matching their own movements with ④ those of others. They seem to have an innate drive to imitate others whom they judge ⑤ to be 'like me'."
+
+Answer: ②번 (which → that 또는 with which)
+Explanation: "관계대명사 which 앞에 전치사가 필요하다. 'gestures with which they have difficulty' 또는 'gestures that they have difficulty matching'이 올바른 형태이다."
+
 **CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
 
 
@@ -170,6 +176,12 @@ TASK: Create a question where students identify ONE contextually WRONG word amon
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ③번입니다. 'soggy'는 'crispy'가 와야 합니다." ← 뜻도 없고 무엇을 수식하는지도 없음!
 "'soggy(흐물흐물한)'는 부정확한 표현이므로 정답이다." ← 왜 부정확한지 설명이 없음!
+
+**REAL 수능 EXAMPLE (2024학년도 30번):**
+Passage: "Bazaar economies feature an apparently flexible price-setting mechanism that sits atop more enduring ties of shared culture. Both the buyer and seller are aware of each other's ① restrictions. In Delhi's bazaars, buyers and sellers can ② assess to a large extent the financial constraints. In the case of electronic products like video games, they are not a ③ necessity at the same level as food items. So, the seller is careful not to directly ask for very ④ low prices for video games because at no point will the buyer see possession of them as an absolute necessity. Access to this type of knowledge establishes a price consensus by relating to each other's preferences and limitations of belonging to a ⑤ similar cultural and economic universe."
+
+Answer: ④번 (low → high)
+Why: 비디오 게임은 필수품이 아니므로 판매자가 **높은** 가격을 요구해도 됨. 낮은(low) 가격은 논리에 맞지 않음.
 
 **CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
 
