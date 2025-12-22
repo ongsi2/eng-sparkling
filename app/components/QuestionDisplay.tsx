@@ -1,6 +1,7 @@
 'use client';
 
 import { GeneratedQuestion } from '@/types';
+import { sanitizePassageHtml } from '@/lib/sanitize-html';
 
 interface QuestionDisplayProps {
   question: GeneratedQuestion;
@@ -22,7 +23,7 @@ export default function QuestionDisplay({ question }: QuestionDisplayProps) {
         <h3 className="text-lg font-semibold text-gray-700 mb-3">지문</h3>
         <p
           className="text-gray-800 leading-relaxed whitespace-pre-wrap [&>u]:underline [&>u]:decoration-cyan-500 [&>u]:decoration-2 [&>u]:underline-offset-2 [&>u]:font-medium [&>u]:text-cyan-700"
-          dangerouslySetInnerHTML={{ __html: question.modifiedPassage }}
+          dangerouslySetInnerHTML={{ __html: sanitizePassageHtml(question.modifiedPassage) }}
         />
       </div>
 

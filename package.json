@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "validate:prompts": "npx ts-node scripts/validate-prompts.ts",
     "test:questions": "npx ts-node scripts/test-question-generation.ts",
     "test:quality": "npx ts-node scripts/quality-evaluator.ts",
@@ -17,9 +20,10 @@
     "@mozilla/readability": "^0.6.0",
     "@supabase/supabase-js": "^2.88.0",
     "@tosspayments/tosspayments-sdk": "^2.5.0",
+    "@types/dompurify": "^3.2.0",
     "cheerio": "^1.1.2",
     "html2canvas": "^1.4.1",
-    "jsdom": "^27.3.0",
+    "isomorphic-dompurify": "^2.34.0",
     "jspdf": "^3.0.4",
     "next": "16.0.10",
     "openai": "^6.13.0",
@@ -29,14 +33,19 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.1",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5.1.2",
     "eslint": "^9",
     "eslint-config-next": "16.0.10",
+    "jsdom": "^27.3.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.16"
   }
 }

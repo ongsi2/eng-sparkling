@@ -9,6 +9,7 @@ import CoinDisplay, { CoinIcon } from '../components/CoinDisplay';
 import AuthButton from '../components/AuthButton';
 import UserAvatar from '../components/UserAvatar';
 import { CoinProduct, formatPrice, getTotalCoins } from '@/lib/coin-products';
+import { apiClient } from '@/lib/api-client';
 
 // Sparkling Logo Component - Premium Design
 const SparklingLogo = () => (
@@ -96,15 +97,10 @@ export default function PaymentPage() {
     setError(null);
 
     try {
-      // 1. Create order in DB first
-      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-      const orderResponse = await fetch(`${basePath}/api/payment/create-order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: selectedProduct.id,
-          userId: user.id,
-        }),
+      // 1. Create order in DB first (with CSRF protection)
+      const orderResponse = await apiClient.post('/api/payment/create-order', {
+        productId: selectedProduct.id,
+        userId: user.id,
       });
 
       if (!orderResponse.ok) {

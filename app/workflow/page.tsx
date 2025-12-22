@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
 import { ArticleResponse } from '@/lib/article-prompts';
@@ -13,25 +12,17 @@ import UserAvatar from '@/app/components/UserAvatar';
 import { useAuth } from '@/app/components/AuthProvider';
 import { ArticleSkeleton, QuestionSkeleton, ProgressBar } from '@/app/components/Skeleton';
 import { PDFExportButton } from '@/app/components/PDFExportButton';
-
-interface DemoUsage {
-  remaining: number;
-  canUse: boolean;
-}
-
-type QuestionType =
-  | 'GRAMMAR_INCORRECT'
-  | 'SELECT_INCORRECT_WORD'
-  | 'PICK_UNDERLINE'
-  | 'PICK_SUBJECT'
-  | 'PICK_TITLE'
-  | 'CORRECT_ANSWER'
-  | 'INCORRECT_ANSWER'
-  | 'BLANK_WORD'
-  | 'COMPLETE_SUMMARY'
-  | 'IRRELEVANT_SENTENCE'
-  | 'INSERT_SENTENCE'
-  | 'SENTENCE_ORDER';
+import { apiClient } from '@/lib/api-client';
+import { useWorkflowReducer, QuestionType, GeneratedQuestion } from './hooks/useWorkflowReducer';
+import {
+  SparklingLogo,
+  StepIndicator,
+  DifficultyButton,
+  QuestionTypeChip,
+  QuestionCard,
+  DemoModeBanner,
+  LoadingSpinner,
+} from './components/MemoizedComponents';
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   GRAMMAR_INCORRECT: '문법형 (어법상 틀린 것)',
@@ -48,53 +39,38 @@ const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   SENTENCE_ORDER: '글의 순서형',
 };
 
-interface Question {
-  question: string;
-  modifiedPassage: string;
-  choices: string[];
-  answer: number;
-  explanation: string;
-  sentenceToInsert?: string;
-}
-
-// Sparkling Logo Component - Premium Design
-const SparklingLogo = () => (
-  <div className="relative group">
-    <svg viewBox="0 0 40 40" className="w-10 h-10">
-      <defs>
-        <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#06b6d4" />
-          <stop offset="50%" stopColor="#22d3ee" />
-          <stop offset="100%" stopColor="#10b981" />
-        </linearGradient>
-        <filter id="glow2">
-          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-          <feMerge>
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-      </defs>
-      <circle cx="20" cy="20" r="18" fill="none" stroke="url(#logoGrad2)" strokeWidth="2.5" className="group-hover:animate-pulse" />
-      <circle cx="20" cy="20" r="15" fill="url(#logoGrad2)" fillOpacity="0.08" />
-      <g transform="translate(12, 11)">
-        <path d="M0 0 L14 0 L14 3 L4 3 L4 7.5 L12 7.5 L12 10.5 L4 10.5 L4 15 L14 15 L14 18 L0 18 Z" fill="url(#logoGrad2)" />
-      </g>
-      <g filter="url(#glow2)">
-        <circle cx="32" cy="10" r="2" fill="#22d3ee" className="animate-sparkle" />
-        <circle cx="8" cy="32" r="1.5" fill="#10b981" className="animate-sparkle delay-300" />
-      </g>
-    </svg>
-  </div>
-);
+const ALL_QUESTION_TYPES = Object.keys(QUESTION_TYPE_LABELS) as QuestionType[];
 
 export default function WorkflowPage() {
   const { user, loading } = useAuth();
-  const router = useRouter();
 
-  // Demo mode state
-  const [demoUsage, setDemoUsage] = useState<DemoUsage | null>(null);
-  const [isDemoMode, setIsDemoMode] = useState(false);
+  // useReducer-based state management
+  const {
+    articleState,
+    questionState,
+    uiState,
+    setArticleSource,
+    setKeywords,
+    setDifficulty,
+    setWordCount,
+    setGeneratedArticle,
+    setIsGeneratingArticle,
+    setDirectInput,
+    setDirectTitle,
+    toggleQuestionType,
+    selectAllTypes,
+    deselectAllTypes,
+    setGeneratedQuestions,
+    setIsGeneratingQuestion,
+    setProgress,
+    addSavedIndex,
+    setSavedIndexes,
+    setStep,
+    setDemoUsage,
+    setIsDemoMode,
+    setUserMenuOpen,
+    resetAll,
+  } = useWorkflowReducer();
 
   // Fetch demo usage on mount (for non-logged-in users)
   useEffect(() => {
@@ -114,54 +90,19 @@ export default function WorkflowPage() {
       }
     }
     fetchDemoUsage();
-  }, [user, loading]);
+  }, [user, loading, setDemoUsage, setIsDemoMode]);
 
-  const [step, setStep] = useState<1 | 2>(1);
+  // Memoized handlers with useCallback
+  const handleSelectAllTypes = useCallback(() => {
+    selectAllTypes(ALL_QUESTION_TYPES);
+  }, [selectAllTypes]);
 
-  // Step 1: Article Source Selection
-  const [articleSource, setArticleSource] = useState<'generate' | 'direct'>('generate');
+  // Destructure for easier access
+  const { source: articleSource, keywords, difficulty, wordCount, generatedArticle, isGenerating: isGeneratingArticle, directInput, directTitle } = articleState;
+  const { selectedTypes: selectedQuestionTypes, generatedQuestions, isGenerating: isGeneratingQuestion, progress: generationProgress, savedIndexes } = questionState;
+  const { step, demoUsage, isDemoMode, userMenuOpen } = uiState;
 
-  // Generate mode
-  const [keywords, setKeywords] = useState('');
-  const [difficulty, setDifficulty] = useState<'중학생' | '고1' | '고2' | '고3'>('고3');
-  const [wordCount, setWordCount] = useState(300);
-  const [generatedArticle, setGeneratedArticle] = useState<ArticleResponse | null>(null);
-  const [isGeneratingArticle, setIsGeneratingArticle] = useState(false);
-
-  // Direct input mode
-  const [directInput, setDirectInput] = useState('');
-  const [directTitle, setDirectTitle] = useState('');
-
-  // Step 2: Question Generation (Multi-select)
-  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<QuestionType[]>([]);
-  const [generatedQuestions, setGeneratedQuestions] = useState<{type: QuestionType, question: Question}[]>([]);
-  const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState<{current: number, total: number} | null>(null);
-
-  // Archive state - track individually saved questions by index
-  const [savedIndexes, setSavedIndexes] = useState<Set<number>>(new Set());
-
-  // User dropdown menu state
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-
-  // Toggle question type selection
-  const toggleQuestionType = (type: QuestionType) => {
-    setSelectedQuestionTypes(prev =>
-      prev.includes(type)
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-    );
-  };
-
-  // Select/Deselect all
-  const selectAllTypes = () => {
-    setSelectedQuestionTypes(Object.keys(QUESTION_TYPE_LABELS) as QuestionType[]);
-  };
-  const deselectAllTypes = () => {
-    setSelectedQuestionTypes([]);
-  };
-
-  const handleGenerateArticle = async () => {
+  const handleGenerateArticle = useCallback(async () => {
     if (!keywords.trim()) {
       toast.error('키워드를 입력해주세요');
       return;
@@ -189,16 +130,11 @@ export default function WorkflowPage() {
     try {
       const keywordArray = keywords.split(',').map(k => k.trim()).filter(k => k);
 
-      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-      const response = await fetch(`${basePath}/api/generate-article`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keywords: keywordArray,
-          difficulty,
-          wordCount,
-          demo: isDemoMode && !user,
-        }),
+      const response = await apiClient.post('/api/generate-article', {
+        keywords: keywordArray,
+        difficulty,
+        wordCount,
+        demo: isDemoMode && !user,
       });
 
       const data = await response.json();
@@ -234,9 +170,9 @@ export default function WorkflowPage() {
     } finally {
       setIsGeneratingArticle(false);
     }
-  };
+  }, [keywords, user, isDemoMode, demoUsage, difficulty, wordCount, setIsGeneratingArticle, setDemoUsage, setGeneratedArticle, setStep]);
 
-  const handleGenerateQuestion = async () => {
+  const handleGenerateQuestion = useCallback(async () => {
     if (!generatedArticle) return;
     if (selectedQuestionTypes.length === 0) {
       toast.error('문제 유형을 하나 이상 선택해주세요.');
@@ -269,52 +205,66 @@ export default function WorkflowPage() {
 
     setIsGeneratingQuestion(true);
     setGeneratedQuestions([]);
-    setGenerationProgress({ current: 0, total: selectedQuestionTypes.length });
+    setProgress({ current: 0, total: selectedQuestionTypes.length });
 
-    const results: {type: QuestionType, question: Question}[] = [];
+    const results: GeneratedQuestion[] = [];
     let successCount = 0;
     let completedCount = 0;
+    let demoLimitExceeded = false;
 
-    // Generate questions sequentially for proper progress tracking
-    for (const type of selectedQuestionTypes) {
+    // 병렬 처리 설정: 3개씩 동시 요청 (API 부하 방지 + 속도 향상)
+    const MAX_CONCURRENT = 3;
+
+    // 단일 문제 생성 함수
+    const generateSingleQuestion = async (type: QuestionType): Promise<GeneratedQuestion | null> => {
+      if (demoLimitExceeded) return null;
+
       try {
-        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-        const response = await fetch(`${basePath}/api/generate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            passage: generatedArticle.article,
-            questionType: type,
-            demo: isDemoMode && !user,
-          }),
+        const response = await apiClient.post('/api/generate', {
+          passage: generatedArticle.article,
+          questionType: type,
+          demo: isDemoMode && !user,
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-          // 데모 한도 초과 시 중단
           if (data.errorCode === 'DEMO_LIMIT_EXCEEDED') {
+            demoLimitExceeded = true;
             toast.error('데모 사용 횟수를 모두 소진했습니다.');
-            break;
+            return null;
           }
-          const errorMsg = data.details || data.error || 'Failed to generate question';
-          throw new Error(errorMsg);
+          throw new Error(data.details || data.error || 'Failed to generate question');
         }
 
-        results.push({ type, question: data as Question });
-        successCount++;
-
-        // Deduct coin for each successful generation (DB) - only for logged-in users
+        // 성공 시 코인 차감 (로그인 사용자만)
         if (user) {
           await deductCoinsFromDB(user.id, COIN_COSTS.GENERATE_QUESTION);
         }
+
+        return { type, question: data };
       } catch (error: any) {
         console.error(`Question generation error for ${type}:`, error);
+        return null;
+      }
+    };
+
+    // 배치 단위 병렬 처리 (진행률 표시를 위해)
+    for (let i = 0; i < selectedQuestionTypes.length; i += MAX_CONCURRENT) {
+      if (demoLimitExceeded) break;
+
+      const batch = selectedQuestionTypes.slice(i, i + MAX_CONCURRENT);
+      const batchResults = await Promise.all(batch.map(generateSingleQuestion));
+
+      for (const result of batchResults) {
+        completedCount++;
+        if (result) {
+          results.push(result);
+          successCount++;
+        }
       }
 
-      // Update progress after each question
-      completedCount++;
-      setGenerationProgress({ current: completedCount, total: selectedQuestionTypes.length });
+      setProgress({ current: completedCount, total: selectedQuestionTypes.length });
     }
 
     if (user) {
@@ -335,7 +285,7 @@ export default function WorkflowPage() {
 
     setGeneratedQuestions(results);
     setIsGeneratingQuestion(false);
-    setGenerationProgress(null);
+    setProgress(null);
 
     if (successCount === 0) {
       toast.error('문제 생성에 실패했습니다.');
@@ -368,14 +318,14 @@ export default function WorkflowPage() {
         }
       }
     }
-  };
+  }, [generatedArticle, selectedQuestionTypes, user, isDemoMode, demoUsage, setIsGeneratingQuestion, setGeneratedQuestions, setProgress, setDemoUsage, setSavedIndexes]);
 
-  const handleBackToStep1 = () => {
+  const handleBackToStep1 = useCallback(() => {
     setStep(1);
     setGeneratedQuestions([]);
-  };
+  }, [setStep, setGeneratedQuestions]);
 
-  const handleDirectInput = () => {
+  const handleDirectInput = useCallback(() => {
     const trimmedInput = directInput.trim();
 
     if (!trimmedInput) {
@@ -415,22 +365,14 @@ export default function WorkflowPage() {
     setGeneratedArticle(articleData);
     setStep(2);
     toast.success('지문이 등록되었습니다!');
-  };
+  }, [directInput, directTitle, user, isDemoMode, setGeneratedArticle, setStep]);
 
-  const handleReset = () => {
-    setStep(1);
-    setArticleSource('generate');
-    setKeywords('');
-    setDirectInput('');
-    setDirectTitle('');
-    setGeneratedArticle(null);
-    setGeneratedQuestions([]);
-    setSelectedQuestionTypes([]);
-    setSavedIndexes(new Set());
-  };
+  const handleReset = useCallback(() => {
+    resetAll();
+  }, [resetAll]);
 
   // Save individual question (DB)
-  const handleSaveQuestion = async (index: number) => {
+  const handleSaveQuestion = useCallback(async (index: number) => {
     if (!generatedArticle || savedIndexes.has(index) || !user) return;
     const { type, question } = generatedQuestions[index];
 
@@ -442,15 +384,15 @@ export default function WorkflowPage() {
     );
 
     if (result) {
-      setSavedIndexes(prev => new Set(prev).add(index));
+      addSavedIndex(index);
       toast.success('문제가 저장되었습니다!');
     } else {
       toast.error('저장에 실패했습니다.');
     }
-  };
+  }, [generatedArticle, savedIndexes, user, generatedQuestions, addSavedIndex]);
 
   // Save all unsaved questions (DB)
-  const handleSaveAllToArchive = async () => {
+  const handleSaveAllToArchive = useCallback(async () => {
     if (generatedQuestions.length === 0 || !generatedArticle || !user) return;
 
     let savedCount = 0;
@@ -479,24 +421,35 @@ export default function WorkflowPage() {
     } else {
       toast('이미 모든 문제가 저장되었습니다.', { icon: 'ℹ️' });
     }
-  };
+  }, [generatedQuestions, generatedArticle, user, savedIndexes, setSavedIndexes]);
+
+  // Memoized values
+  const pdfQuestions = useMemo(() => {
+    if (!generatedArticle || generatedQuestions.length === 0) return [];
+    return generatedQuestions.map(({ type, question }) => ({
+      type,
+      typeName: QUESTION_TYPE_LABELS[type],
+      questionText: question.question,
+      passage: question.modifiedPassage.replace(/<[^>]*>/g, ''),
+      choices: question.choices,
+      answer: question.answer,
+      explanation: question.explanation,
+      difficulty: generatedArticle.difficulty,
+    }));
+  }, [generatedQuestions, generatedArticle]);
+
+  const totalQuestionCost = useMemo(() => {
+    return selectedQuestionTypes.length * COIN_COSTS.GENERATE_QUESTION;
+  }, [selectedQuestionTypes.length]);
 
   // 로딩 중이면 로딩 화면 표시
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--color-cream)] flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-[var(--color-spark)] border-t-transparent rounded-full" />
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   // 비로그인 + 데모 모드 초기화 중
   if (!user && !demoUsage) {
-    return (
-      <div className="min-h-screen bg-[var(--color-cream)] flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-[var(--color-spark)] border-t-transparent rounded-full" />
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
@@ -643,35 +596,7 @@ export default function WorkflowPage() {
         </div>
 
         {/* Step Indicator */}
-        <div className="flex items-center justify-center mb-12">
-          <div className={`flex items-center ${step === 1 ? 'text-[var(--color-spark)]' : 'text-[var(--color-text-light)]'}`}>
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 font-semibold transition-all ${
-              step === 1
-                ? 'border-[var(--color-spark)] bg-[var(--color-spark)] text-white'
-                : generatedArticle
-                  ? 'border-[var(--color-mint)] bg-[var(--color-mint)] text-white'
-                  : 'border-[var(--color-text-light)]'
-            }`}>
-              {generatedArticle && step !== 1 ? '✓' : '1'}
-            </div>
-            <span className="ml-3 font-medium">아티클 생성</span>
-          </div>
-
-          <div className={`w-20 h-1 mx-6 rounded-full transition-all ${
-            generatedArticle ? 'bg-gradient-to-r from-[var(--color-mint)] to-[var(--color-spark)]' : 'bg-[var(--color-cream-dark)]'
-          }`} />
-
-          <div className={`flex items-center ${step === 2 ? 'text-[var(--color-spark)]' : 'text-[var(--color-text-light)]'}`}>
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 font-semibold transition-all ${
-              step === 2 && generatedArticle
-                ? 'border-[var(--color-spark)] bg-[var(--color-spark)] text-white'
-                : 'border-[var(--color-text-light)]'
-            }`}>
-              2
-            </div>
-            <span className="ml-3 font-medium">문제 생성</span>
-          </div>
-        </div>
+        <StepIndicator currentStep={step} hasArticle={!!generatedArticle} />
 
         {/* Step 1: Article Generation */}
         {step === 1 && (
@@ -739,17 +664,12 @@ export default function WorkflowPage() {
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {(['중학생', '고1', '고2', '고3'] as const).map((level) => (
-                        <button
+                        <DifficultyButton
                           key={level}
+                          level={level}
+                          isSelected={difficulty === level}
                           onClick={() => setDifficulty(level)}
-                          className={`py-3 px-4 rounded-xl font-medium transition-all cursor-pointer ${
-                            difficulty === level
-                              ? 'bg-gradient-to-r from-[var(--color-spark)] to-[var(--color-spark-light)] text-white shadow-md'
-                              : 'bg-[var(--color-cream)] text-[var(--color-text)] hover:bg-[var(--color-cream-dark)] border border-[var(--color-spark)]/10'
-                          }`}
-                        >
-                          {level}
-                        </button>
+                        />
                       ))}
                     </div>
                   </div>
@@ -807,22 +727,7 @@ export default function WorkflowPage() {
 
                   {/* Demo mode notice */}
                   {isDemoMode && !user && (
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                      <div className="flex items-start gap-3">
-                        <svg className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div className="text-sm">
-                          <p className="font-medium text-amber-700 mb-1">데모 모드로 체험 중</p>
-                          <p className="text-amber-600">
-                            {demoUsage?.remaining ?? 0}회의 무료 체험 기회가 남았습니다.
-                            <Link href="/login" className="ml-1 underline font-medium hover:text-amber-800">
-                              로그인하면 더 많은 문제를 생성할 수 있어요!
-                            </Link>
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                    <DemoModeBanner remaining={demoUsage?.remaining ?? 0} />
                   )}
                 </>
               )}
@@ -962,7 +867,7 @@ export default function WorkflowPage() {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={selectAllTypes}
+                        onClick={handleSelectAllTypes}
                         className="text-xs px-2 py-1 text-[var(--color-spark)] hover:bg-[var(--color-spark)]/10 rounded transition-colors cursor-pointer"
                       >
                         전체선택
@@ -978,23 +883,15 @@ export default function WorkflowPage() {
                   </div>
                   {/* Chip/Tag Multi-select UI */}
                   <div className="flex flex-wrap gap-2">
-                    {(Object.keys(QUESTION_TYPE_LABELS) as QuestionType[]).map((type) => {
-                      const isSelected = selectedQuestionTypes.includes(type);
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => toggleQuestionType(type)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors cursor-pointer ${
-                            isSelected
-                              ? 'bg-gradient-to-r from-[var(--color-spark)] to-[var(--color-mint)] text-white border-transparent'
-                              : 'bg-[var(--color-cream)] text-[var(--color-text)] hover:bg-[var(--color-cream-dark)] border-[var(--color-spark)]/20'
-                          }`}
-                        >
-                          {QUESTION_TYPE_LABELS[type]}
-                        </button>
-                      );
-                    })}
+                    {ALL_QUESTION_TYPES.map((type) => (
+                      <QuestionTypeChip
+                        key={type}
+                        type={type}
+                        label={QUESTION_TYPE_LABELS[type]}
+                        isSelected={selectedQuestionTypes.includes(type)}
+                        onClick={() => toggleQuestionType(type)}
+                      />
+                    ))}
                   </div>
                   {selectedQuestionTypes.length > 0 && (
                     <p className="text-sm text-[var(--color-spark)] mt-3 font-medium">
@@ -1024,7 +921,7 @@ export default function WorkflowPage() {
                         ? `${selectedQuestionTypes.length}개 문제 생성하기`
                         : '문제 유형을 선택하세요'}
                       {selectedQuestionTypes.length > 0 && (
-                        <CoinCost amount={selectedQuestionTypes.length * COIN_COSTS.GENERATE_QUESTION} />
+                        <CoinCost amount={totalQuestionCost} />
                       )}
                     </span>
                   ) : isDemoMode ? (
@@ -1090,19 +987,10 @@ export default function WorkflowPage() {
                           로그인하면 자동 저장
                         </span>
                       )}
-                      {user && (
+                      {user && generatedArticle && (
                         <PDFExportButton
                           variant="button"
-                          questions={generatedQuestions.map(({ type, question }) => ({
-                            type,
-                            typeName: QUESTION_TYPE_LABELS[type],
-                            questionText: question.question,
-                            passage: question.modifiedPassage.replace(/<[^>]*>/g, ''),
-                            choices: question.choices,
-                            answer: question.answer,
-                            explanation: question.explanation,
-                            difficulty: generatedArticle.difficulty,
-                          }))}
+                          questions={pdfQuestions}
                           title={`ENG-SPARKLING - ${generatedArticle.title}`}
                         />
                       )}
@@ -1145,108 +1033,16 @@ export default function WorkflowPage() {
 
                 {/* Question Cards */}
                 {generatedQuestions.map(({ type, question }, qIndex) => (
-                  <div key={qIndex} className="question-card animate-scale-in" style={{ animationDelay: `${qIndex * 100}ms` }}>
-                    <div className="space-y-6">
-                      {/* Question Header */}
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="px-2 py-1 bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] text-xs font-medium rounded">
-                              {QUESTION_TYPE_LABELS[type]}
-                            </span>
-                            <span className="text-xs text-[var(--color-text-muted)]">
-                              #{qIndex + 1}
-                            </span>
-                          </div>
-                          <h3 className="text-lg font-semibold text-[var(--color-ink)]">
-                            {question.question}
-                          </h3>
-                        </div>
-                        {user ? (
-                          <button
-                            onClick={() => handleSaveQuestion(qIndex)}
-                            disabled={savedIndexes.has(qIndex)}
-                            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
-                              savedIndexes.has(qIndex)
-                                ? 'bg-[var(--color-mint)]/20 text-[var(--color-mint)] cursor-default'
-                                : 'bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] hover:bg-[var(--color-spark)]/20'
-                            }`}
-                          >
-                            {savedIndexes.has(qIndex) ? (
-                              <>
-                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                                저장완료
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                                </svg>
-                                저장하기
-                              </>
-                            )}
-                          </button>
-                        ) : (
-                          <span className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-400">
-                            로그인 필요
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Passage */}
-                      <div className="p-6 bg-[var(--color-cream)] rounded-xl border border-[var(--color-spark)]/10">
-                        <h4 className="font-semibold text-[var(--color-ink)] mb-3 text-sm">지문</h4>
-                        <p
-                          className="passage-content whitespace-pre-wrap leading-relaxed text-[var(--color-text)]"
-                          dangerouslySetInnerHTML={{ __html: question.modifiedPassage }}
-                        />
-                        {question.sentenceToInsert && (
-                          <div className="mt-4 p-4 bg-gradient-to-r from-[var(--color-spark)]/5 to-[var(--color-mint)]/5 rounded-lg border border-[var(--color-spark)]/20">
-                            <p className="font-semibold text-[var(--color-ink)] text-sm mb-1">주어진 문장:</p>
-                            <p className="text-[var(--color-text)] italic">{question.sentenceToInsert}</p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Choices */}
-                      <div>
-                        <h4 className="font-semibold text-[var(--color-ink)] mb-3 text-sm">선택지</h4>
-                        <div className="space-y-3">
-                          {question.choices.map((choice, index) => (
-                            <div
-                              key={index}
-                              className={`choice-item ${index + 1 === question.answer ? 'correct' : ''}`}
-                            >
-                              <span className="font-medium text-[var(--color-text)]">
-                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--color-spark)]/10 text-[var(--color-spark-deep)] text-sm font-semibold mr-3">
-                                  {index + 1}
-                                </span>
-                                {choice}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Explanation */}
-                      <div className="p-6 bg-gradient-to-br from-[var(--color-ink)] to-[var(--color-ink-light)] rounded-xl text-white">
-                        <h4 className="font-semibold mb-3 flex items-center gap-2">
-                          <svg className="w-5 h-5 text-[var(--color-spark-light)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                          </svg>
-                          해설
-                        </h4>
-                        <p
-                          className="text-white/90 leading-relaxed"
-                          dangerouslySetInnerHTML={{
-                            __html: question.explanation.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>')
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  <QuestionCard
+                    key={qIndex}
+                    index={qIndex}
+                    type={type}
+                    typeLabel={QUESTION_TYPE_LABELS[type]}
+                    question={question}
+                    isSaved={savedIndexes.has(qIndex)}
+                    isLoggedIn={!!user}
+                    onSave={() => handleSaveQuestion(qIndex)}
+                  />
                 ))}
               </div>
             )}

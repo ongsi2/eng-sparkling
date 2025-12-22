@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CoinIcon, triggerCoinUpdate } from '../../components/CoinDisplay';
+import { apiClient } from '@/lib/api-client';
 
 interface ConfirmResult {
   success: boolean;
@@ -33,15 +34,10 @@ function PaymentSuccessContent() {
       }
 
       try {
-        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-        const response = await fetch(`${basePath}/api/payment/confirm`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            paymentKey,
-            orderId,
-            amount: Number(amount),
-          }),
+        const response = await apiClient.post('/api/payment/confirm', {
+          paymentKey,
+          orderId,
+          amount: Number(amount),
         });
 
         const data = await response.json();

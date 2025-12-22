@@ -8,6 +8,7 @@ import AuthButton from '@/app/components/AuthButton';
 import CoinDisplay from '@/app/components/CoinDisplay';
 import UserAvatar from '@/app/components/UserAvatar';
 import { PDFExportButton } from '@/app/components/PDFExportButton';
+import { sanitizePassageHtml } from '@/lib/sanitize-html';
 
 // Sparkling Logo Component - Premium Modern Design
 const SparklingLogo = () => (
@@ -454,7 +455,7 @@ export default function Home() {
                 <div className="p-6 bg-[var(--color-cream)] rounded-xl border border-[var(--color-spark)]/10">
                   <p
                     className="text-[var(--color-text)] leading-relaxed whitespace-pre-wrap font-body [&>u]:underline [&>u]:decoration-[var(--color-spark)] [&>u]:decoration-2 [&>u]:underline-offset-2 [&>u]:font-medium [&>u]:text-[var(--color-spark-deep)]"
-                    dangerouslySetInnerHTML={{ __html: selectedQuestion.modifiedPassage }}
+                    dangerouslySetInnerHTML={{ __html: sanitizePassageHtml(selectedQuestion.modifiedPassage) }}
                   />
                 </div>
 

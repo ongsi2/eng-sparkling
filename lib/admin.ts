@@ -113,13 +113,50 @@ export interface AdminStats {
   totalQuestionsGenerated: number;
 }
 
+// Period Stats for Dashboard
+export interface PeriodStats {
+  today: { users: number; revenue: number; questions: number };
+  week: { users: number; revenue: number; questions: number };
+  month: { users: number; revenue: number; questions: number };
+}
+
+// Combined Dashboard Stats (from RPC)
+export interface DashboardStats {
+  overall: AdminStats;
+  period: PeriodStats;
+  generatedAt: string;
+}
+
+/**
+ * Get all admin dashboard stats in a single RPC call
+ * Optimized: 20 queries → 1 query
+ */
+export async function getAdminDashboardStats(): Promise<DashboardStats | null> {
+  const { data, error } = await supabaseAdmin.rpc('get_admin_dashboard_stats');
+
+  if (error) {
+    console.error('Error fetching dashboard stats:', error);
+    return null;
+  }
+
+  return data as DashboardStats;
+}
+
+/**
+ * Get admin stats (legacy support, uses RPC internally)
+ */
 export async function getAdminStats(): Promise<AdminStats> {
-  // Get total users
+  const dashboardStats = await getAdminDashboardStats();
+
+  if (dashboardStats) {
+    return dashboardStats.overall;
+  }
+
+  // Fallback to individual queries if RPC fails
   const { count: totalUsers } = await supabaseAdmin
     .from('profiles')
     .select('*', { count: 'exact', head: true });
 
-  // Get active users today (users with activity in last 24 hours)
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const { count: activeUsersToday } = await supabaseAdmin
@@ -127,7 +164,6 @@ export async function getAdminStats(): Promise<AdminStats> {
     .select('*', { count: 'exact', head: true })
     .gte('updated_at', yesterday.toISOString());
 
-  // Get total orders and revenue
   const { data: orderStats } = await supabaseAdmin
     .from('orders')
     .select('amount, coins, status')
@@ -137,7 +173,6 @@ export async function getAdminStats(): Promise<AdminStats> {
   const totalRevenue = orderStats?.reduce((sum, o) => sum + (o.amount || 0), 0) ?? 0;
   const totalCoinsIssued = orderStats?.reduce((sum, o) => sum + (o.coins || 0), 0) ?? 0;
 
-  // Get total questions generated
   const { count: totalQuestionsGenerated } = await supabaseAdmin
     .from('archived_questions')
     .select('*', { count: 'exact', head: true });
@@ -426,20 +461,22 @@ export async function deleteDemoUsage(ipAddress: string): Promise<boolean> {
   return !error;
 }
 
-// Period Stats for Dashboard
-export interface PeriodStats {
-  today: { users: number; revenue: number; questions: number };
-  week: { users: number; revenue: number; questions: number };
-  month: { users: number; revenue: number; questions: number };
-}
-
+/**
+ * Get period stats (legacy support, uses RPC internally)
+ */
 export async function getPeriodStats(): Promise<PeriodStats> {
+  const dashboardStats = await getAdminDashboardStats();
+
+  if (dashboardStats) {
+    return dashboardStats.period;
+  }
+
+  // Fallback to individual queries if RPC fails
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-  // Today's stats
   const { count: todayUsers } = await supabaseAdmin
     .from('profiles')
     .select('*', { count: 'exact', head: true })
@@ -456,7 +493,6 @@ export async function getPeriodStats(): Promise<PeriodStats> {
     .select('*', { count: 'exact', head: true })
     .gte('created_at', todayStart);
 
-  // Week's stats
   const { count: weekUsers } = await supabaseAdmin
     .from('profiles')
     .select('*', { count: 'exact', head: true })
@@ -473,7 +509,6 @@ export async function getPeriodStats(): Promise<PeriodStats> {
     .select('*', { count: 'exact', head: true })
     .gte('created_at', weekStart);
 
-  // Month's stats
   const { count: monthUsers } = await supabaseAdmin
     .from('profiles')
     .select('*', { count: 'exact', head: true })

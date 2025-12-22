@@ -9,6 +9,7 @@ import UserAvatar from '@/app/components/UserAvatar';
 import { useAuth } from '@/app/components/AuthProvider';
 import { getArchivedQuestions, deleteArchivedQuestion, ArchivedQuestion } from '@/lib/archive';
 import { PDFExportButton } from '@/app/components/PDFExportButton';
+import { sanitizePassageHtml } from '@/lib/sanitize-html';
 
 type QuestionType =
   | 'GRAMMAR_INCORRECT'
@@ -497,7 +498,7 @@ export default function ArchivePage() {
                     <h4 className="font-semibold text-[var(--color-ink)] mb-3 text-sm">지문</h4>
                     <p
                       className="whitespace-pre-wrap leading-relaxed text-[var(--color-text)] [&>u]:underline [&>u]:decoration-[var(--color-spark)] [&>u]:decoration-2 [&>u]:underline-offset-2 [&>u]:font-medium [&>u]:text-[var(--color-spark-deep)]"
-                      dangerouslySetInnerHTML={{ __html: selectedItem.question.modifiedPassage }}
+                      dangerouslySetInnerHTML={{ __html: sanitizePassageHtml(selectedItem.question.modifiedPassage) }}
                     />
                     {selectedItem.question.sentenceToInsert && (
                       <div className="mt-4 p-4 bg-gradient-to-r from-[var(--color-spark)]/5 to-[var(--color-mint)]/5 rounded-lg border border-[var(--color-spark)]/20">

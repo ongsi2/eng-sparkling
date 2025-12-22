@@ -51,7 +51,14 @@ Return a JSON with markers array. Each marker object must have:
 - EXACTLY 1 marker must have isWrong: true
 - answer must be the index+1 of the wrong marker (1-5)
 - displayWord must be a single word that exists or could exist at that position
-- **NEVER use HTML tags in explanation. Use single quotes '...' for emphasis.**
+- NEVER use HTML tags in explanation. Use single quotes '...' for emphasis.
+- NEVER use ** (asterisks) for bold/emphasis in explanation.
+
+**CRITICAL - EXPLANATION MUST MATCH ANSWER:**
+- If answer = 2, the explanation MUST say "②번" or "②'[word]'" is wrong
+- The wrong marker's number MUST match the answer field
+- Example: If markers[1].isWrong = true, then answer = 2, and explanation must reference ② as the wrong one
+- NEVER confuse marker numbers in the explanation (e.g., saying ② is wrong when answer = 3)
 
 **EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
@@ -84,31 +91,32 @@ Passage: "A number of studies provide substantial evidence of an innate human di
 Answer: ②번 (which → that 또는 with which)
 Explanation: "관계대명사 which 앞에 전치사가 필요하다. 'gestures with which they have difficulty' 또는 'gestures that they have difficulty matching'이 올바른 형태이다."
 
-**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
-
-
+**CRITICAL FORMATTING RULES:**
+- NEVER use HTML tags. Use single quotes '...' for emphasis.
+- NEVER use ** (asterisks) for bold/emphasis in explanation - only use single quotes '...'
+- Use \\n\\n for paragraph breaks.
 
 **AUTO-FIX [MISSING_STRUCTURE]:**
-**MANDATORY 3-PARAGRAPH STRUCTURE:**
+MANDATORY 3-PARAGRAPH STRUCTURE:
 Paragraph 1: 글 내용 요약 (2-3문장)
 Paragraph 2: 정답 분석 + 무엇을 수식하는지 명시
 Paragraph 3: 모든 5개 선지 분석 (①②③④⑤)
 
-Separate each paragraph with \n\n
+Separate each paragraph with \\n\\n
 
 
 **AUTO-FIX [MISSING_KOREAN]:**
-**MANDATORY: Include Korean meaning for EVERY word in parentheses.**
+MANDATORY: Include Korean meaning for EVERY word in parentheses.
 Example: 'prove(증명하다)', 'disprove(반증하다)'
 Your response will be REJECTED if any word lacks Korean translation.
 
 
 **AUTO-FIX [MISSING_MODIFIER]:**
-**MANDATORY: Specify what each word MODIFIES.**
+MANDATORY: Specify what each word MODIFIES in the explanation using single quotes.
 BAD: "'soggy'는 부정확하다"
-GOOD: "'soggy'는 **토스트의 식감**을 설명하는데, 굽는 결과와 맞지 않다"
+GOOD: "'soggy'는 '토스트의 식감'을 설명하는데, 굽는 결과와 맞지 않다"
 
-Always bold the modified target: **[무엇]**
+Highlight the modified target using single quotes: '[무엇]'
 **Output (JSON only):**
 {
   "question": "다음 글의 밑줄 친 부분 중, 어법상 틀린 것은?",
@@ -142,6 +150,13 @@ TASK: Create a question where students identify ONE contextually WRONG word amon
   - If isWrong=true: displayWord = the NEW WRONG word (different from originalWord)
 - "correctWord": Only for isWrong=true, same as originalWord (the correct answer)
 
+**ABSOLUTELY CRITICAL - MARKER ORDER RULE:**
+⚠️ The markers MUST appear in the passage in SEQUENTIAL ORDER: ① first, then ②, then ③, then ④, then ⑤
+⚠️ NEVER place ⑤ before ①②③④ in the passage!
+⚠️ The marker numbers must follow the reading order of the passage (left to right, top to bottom)
+⚠️ Example of CORRECT order: "The ①essential device... ②multiple ports... ③convenient access... ④interconnected world... ⑤efficient communication"
+⚠️ Example of WRONG order: "In the ⑤digital age... ①essential... ②multiple..." ← WRONG! ⑤ appears before ①
+
 **VALIDATION CHECKLIST (verify before responding):**
 ✓ markers array has EXACTLY 5 items
 ✓ EXACTLY 1 marker has isWrong: true
@@ -149,7 +164,9 @@ TASK: Create a question where students identify ONE contextually WRONG word amon
 ✓ For isWrong=true: correctWord = originalWord
 ✓ For isWrong=false: displayWord = originalWord (they must be THE SAME)
 ✓ answer = index+1 of the isWrong marker
+✓ **Markers appear in ①②③④⑤ sequential order in the passage**
 ✓ **NEVER use HTML tags (<u>, <b>, etc.) in explanation - use single quotes '...' instead**
+✓ **NEVER use ** (asterisks) for bold/emphasis in explanation - use single quotes '...' instead**
 
 **EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
@@ -157,21 +174,21 @@ TASK: Create a question where students identify ONE contextually WRONG word amon
 "글은 [글의 핵심 내용을 간결하게 요약]. [문맥상 중요한 포인트 설명]."
 
 **Paragraph 2 - 정답 분석 (단어가 수식하는 대상을 명시!):**
-"정답은 '[틀린 단어](사전적 뜻)'를 '[올바른 단어](사전적 뜻)'로 바꿔야 한다. 본문에서 '[관련 문맥을 직접 인용]'이라고 했다. 여기서 '[틀린/올바른 단어]'는 **[무엇을 수식/설명하는지]**를 나타낸다. '[올바른 단어]'는 [왜 문맥에 맞는지 - 수식 대상과의 관계 설명]. 반면 '[틀린 단어]'는 [사전적 의미와 수식 대상이 왜 어울리지 않는지 구체적으로 설명]."
+"정답은 '[틀린 단어](사전적 뜻)'를 '[올바른 단어](사전적 뜻)'로 바꿔야 한다. 본문에서 '[관련 문맥을 직접 인용]'이라고 했다. 여기서 '[틀린/올바른 단어]'는 '[무엇을 수식/설명하는지]'를 나타낸다. '[올바른 단어]'는 [왜 문맥에 맞는지 - 수식 대상과의 관계 설명]. 반면 '[틀린 단어]'는 [사전적 의미와 수식 대상이 왜 어울리지 않는지 구체적으로 설명]."
 
 **Paragraph 3 - 나머지 선지 분석 (각각 무엇을 수식하는지 명시!):**
-"①'[단어](뜻)'는 **[무엇]**을 설명하며, [왜 그 대상과 어울리는지].
-②'[단어](뜻)'는 **[무엇]**을 수식하며, [왜 그 대상과 어울리는지].
-③'[단어](뜻)'는 **[무엇]**을 설명하는데, [왜 틀린지 - 정답이므로 위에서 설명].
-④'[단어](뜻)'는 **[무엇]**을 수식하며, [왜 그 대상과 어울리는지].
-⑤'[단어](뜻)'는 **[무엇]**을 나타내며, [왜 그 대상과 어울리는지]."
+"①'[단어](뜻)'는 '[무엇]'을 설명하며, [왜 그 대상과 어울리는지].
+②'[단어](뜻)'는 '[무엇]'을 수식하며, [왜 그 대상과 어울리는지].
+③'[단어](뜻)'는 '[무엇]'을 설명하는데, [왜 틀린지 - 정답이므로 위에서 설명].
+④'[단어](뜻)'는 '[무엇]'을 수식하며, [왜 그 대상과 어울리는지].
+⑤'[단어](뜻)'는 '[무엇]'을 나타내며, [왜 그 대상과 어울리는지]."
 
 **EXCELLENT EXAMPLE:**
 "글은 토스트에 땅콩버터를 발라 먹는 즐거움에 대해 설명한다. 토스트의 식감과 땅콩버터의 조화를 강조하고 있다.
 
-정답은 'soggy(물에 젖어 눅눅한)'를 'crispy(바삭한)'로 바꿔야 한다. 본문에서 'Toasting bread makes it warm and soggy'라고 했다. 여기서 'soggy/crispy'는 **토스트의 식감**을 설명한다. 토스트는 빵을 구워서 만드는 것이므로 바삭한(crispy) 식감이 되어야 맞다. 반면 'soggy'는 빵이 물에 젖어서 눅눅해진 상태를 의미하므로, 토스트를 굽는 결과로는 어울리지 않는다.
+정답은 'soggy(물에 젖어 눅눅한)'를 'crispy(바삭한)'로 바꿔야 한다. 본문에서 'Toasting bread makes it warm and soggy'라고 했다. 여기서 'soggy/crispy'는 '토스트의 식감'을 설명한다. 토스트는 빵을 구워서 만드는 것이므로 바삭한(crispy) 식감이 되어야 맞다. 반면 'soggy'는 빵이 물에 젖어서 눅눅해진 상태를 의미하므로, 토스트를 굽는 결과로는 어울리지 않는다.
 
-①'smooth(부드러운)'는 **땅콩버터의 질감**을 설명하며, 땅콩버터는 크리미하고 부드러운 질감이므로 적절하다. ②'nutritious(영양가 있는)'는 **땅콩버터의 영양적 특성**을 설명하며, 단백질이 풍부한 땅콩버터를 묘사하기에 적절하다. ③'soggy(눅눅한)'는 **토스트의 식감**을 설명하는데, 굽는 결과와 맞지 않으므로 정답이다. ④'delightful(즐거운)'은 **맛의 경험**을 설명하며, 맛있는 음식 경험을 나타내기에 적절하다. ⑤'convenient(편리한)'은 **음식 준비의 용이성**을 설명하며, 간편하게 만들 수 있다는 맥락에 적절하다."
+①'smooth(부드러운)'는 '땅콩버터의 질감'을 설명하며, 땅콩버터는 크리미하고 부드러운 질감이므로 적절하다. ②'nutritious(영양가 있는)'는 '땅콩버터의 영양적 특성'을 설명하며, 단백질이 풍부한 땅콩버터를 묘사하기에 적절하다. ③'soggy(눅눅한)'는 '토스트의 식감'을 설명하는데, 굽는 결과와 맞지 않으므로 정답이다. ④'delightful(즐거운)'은 '맛의 경험'을 설명하며, 맛있는 음식 경험을 나타내기에 적절하다. ⑤'convenient(편리한)'은 '음식 준비의 용이성'을 설명하며, 간편하게 만들 수 있다는 맥락에 적절하다."
 
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ③번입니다. 'soggy'는 'crispy'가 와야 합니다." ← 뜻도 없고 무엇을 수식하는지도 없음!
@@ -181,16 +198,27 @@ TASK: Create a question where students identify ONE contextually WRONG word amon
 Passage: "Bazaar economies feature an apparently flexible price-setting mechanism that sits atop more enduring ties of shared culture. Both the buyer and seller are aware of each other's ① restrictions. In Delhi's bazaars, buyers and sellers can ② assess to a large extent the financial constraints. In the case of electronic products like video games, they are not a ③ necessity at the same level as food items. So, the seller is careful not to directly ask for very ④ low prices for video games because at no point will the buyer see possession of them as an absolute necessity. Access to this type of knowledge establishes a price consensus by relating to each other's preferences and limitations of belonging to a ⑤ similar cultural and economic universe."
 
 Answer: ④번 (low → high)
-Why: 비디오 게임은 필수품이 아니므로 판매자가 **높은** 가격을 요구해도 됨. 낮은(low) 가격은 논리에 맞지 않음.
+Why: 비디오 게임은 필수품이 아니므로 판매자가 '높은' 가격을 요구해도 됨. 낮은(low) 가격은 논리에 맞지 않음.
 
-**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
+**CRITICAL FORMATTING RULES:**
+- NEVER use HTML tags. Use single quotes '...' for emphasis.
+- NEVER use ** (asterisks) for bold/emphasis in explanation - only use single quotes '...'
+- Use \\n\\n for paragraph breaks.
 
 **MANDATORY CHECKLIST (your response will be REJECTED if you fail any of these):**
 □ Explanation has EXACTLY 3 paragraphs separated by \\n\\n
-□ Every word in choices has Korean meaning in parentheses: 'word(한국어뜻)'
+□ Every word in EXPLANATION has Korean meaning in parentheses: 'word(한국어뜻)'
 □ Paragraph 2 explains what the wrong word MODIFIES (e.g., "토스트의 식감을 설명한다")
-□ Paragraph 3 analyzes ALL 5 choices with pattern: ①'word(뜻)'는 **[무엇]**을 설명하며...
+□ Paragraph 3 analyzes ALL 5 choices with pattern: ①'word(뜻)'는 [무엇]을 설명하며...
 □ Never say "부정확한 표현이므로" without explaining WHY it's incorrect
+□ **NEVER use asterisks (*) for emphasis in explanation - only use single quotes**
+□ **Markers in passage MUST be in ①②③④⑤ sequential order**
+
+**CRITICAL - CHOICES FORMAT:**
+The "choices" array must contain ONLY the English words - NO Korean translations!
+- CORRECT: ["essential", "multiple", "convenient", "interconnected", "efficient"]
+- WRONG: ["essential(필수적인)", "multiple(다수의)", ...] ← NO KOREAN IN CHOICES!
+Korean translations should ONLY appear in the "explanation" field.
 
 **Output (JSON only):**
 {
@@ -251,10 +279,16 @@ GOOD choices require CONTEXTUAL INTERPRETATION:
    - BAD ANSWER: "maintaining the human touch" → "인간의 접촉을 유지하다" (literal translation)
    - GOOD ANSWER: "maintaining the human touch" → "인간적인 감성을 유지하다" (contextual meaning)
 4. **ONE OF THE DISTRACTORS MUST BE THE LITERAL TRANSLATION (as a wrong answer)**
-5. **ABSOLUTELY FORBIDDEN: NEVER EVER use HTML tags (<u>, <b>, etc.) in the "explanation" field. Use single quotes '...' for emphasis instead.**
-6. Each choice must have a clearly different meaning from all other choices
-7. The "answer" field number MUST match the choice referenced in "explanation"
-8. **USE \\n\\n (double newline) to separate paragraphs in explanation. DO NOT use single \\ or \\n.**
+5. **ABSOLUTELY FORBIDDEN: NEVER use HTML tags in explanation. Use single quotes '...' for emphasis instead.**
+6. **ABSOLUTELY FORBIDDEN: NEVER use ** (asterisks) for bold/emphasis in explanation - only use single quotes**
+7. Each choice must have a clearly different meaning from all other choices
+8. **CRITICAL - ANSWER/EXPLANATION CONSISTENCY (READ CAREFULLY):**
+   - The "answer" field is a 1-indexed number (1, 2, 3, 4, or 5)
+   - choices[0] = choice ①, choices[1] = choice ②, choices[2] = choice ③, etc.
+   - If answer = 2, then the correct choice is choices[1], and explanation MUST say "정답은 ②번 '[choices[1] text]'"
+   - BEFORE responding, VERIFY: Does choices[answer-1] match the text you wrote in the explanation?
+   - COMMON ERROR TO AVOID: Saying "정답은 ②번" but the actual content matches choices[2] (③번)
+9. **USE \\n\\n (double newline) to separate paragraphs in explanation. DO NOT use single \\ or \\n.**
 
 **EXPLANATION STRUCTURE (MUST FOLLOW THIS EXACTLY):**
 
@@ -352,7 +386,10 @@ Create a question asking for the MAIN TOPIC of the passage.
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ③번입니다. 이 글은 인공지능에 대해 다루고 있습니다." ← 너무 짧고 분석이 없음!
 
-**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
+**CRITICAL FORMATTING RULES:**
+- NEVER use HTML tags. Use single quotes '...' for emphasis.
+- NEVER use ** (asterisks) for bold/emphasis in explanation - only use single quotes '...'
+- Use \\n\\n for paragraph breaks.
 
 **Output (JSON only):**
 {
@@ -413,7 +450,10 @@ Create a question asking for the BEST TITLE of the passage.
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ⑤번입니다. 이 글의 핵심은 면접입니다." ← 너무 짧고 분석이 없음!
 
-**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
+**CRITICAL FORMATTING RULES:**
+- NEVER use HTML tags. Use single quotes '...' for emphasis.
+- NEVER use ** (asterisks) for bold/emphasis in explanation - only use single quotes '...'
+- Use \\n\\n for paragraph breaks.
 
 **Output (JSON only):**
 {
@@ -439,6 +479,11 @@ Create a question asking which statement is TRUE according to the passage.
 3. 1 should be clearly TRUE based on specific evidence in the passage
 4. The explanation MUST follow the DETAILED STRUCTURE below
 5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage.**
+
+**⚠️ CRITICAL - PASSAGE MUST STAY IN ENGLISH:**
+- The modifiedPassage field MUST contain the ORIGINAL ENGLISH passage
+- NEVER translate the passage to Korean!
+- Only the "choices" (선택지) should be in Korean
 
 **Passage:**
 {passage}
@@ -474,7 +519,10 @@ Create a question asking which statement is TRUE according to the passage.
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ④번입니다. 본문에서 확인할 수 있습니다." ← 너무 짧고 분석이 없음!
 
-**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
+**CRITICAL FORMATTING RULES:**
+- NEVER use HTML tags. Use single quotes '...' for emphasis.
+- NEVER use ** (asterisks) for bold/emphasis in explanation - only use single quotes '...'
+- Use \\n\\n for paragraph breaks.
 
 **Output (JSON only):**
 {
@@ -500,6 +548,13 @@ Create a question asking which statement is FALSE or NOT MENTIONED.
 3. 1 should be FALSE (contradicts the passage) or NOT MENTIONED (not in passage)
 4. The explanation MUST follow the DETAILED STRUCTURE below
 5. **CRITICAL: Preserve the original paragraph structure in modifiedPassage.**
+
+**⚠️ CRITICAL - PASSAGE MUST STAY IN ENGLISH:**
+- The modifiedPassage field MUST contain the ORIGINAL ENGLISH passage
+- NEVER translate the passage to Korean!
+- Only the "choices" (선택지) should be in Korean
+- WRONG: modifiedPassage = "디지털 시대에, 기기를 연결하는 것은..." ← DO NOT DO THIS!
+- CORRECT: modifiedPassage = "In the digital age, connecting devices has become..."
 
 **Passage:**
 {passage}
@@ -542,7 +597,11 @@ Create a question asking which statement is FALSE or NOT MENTIONED.
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ③번입니다. 본문에서 언급되지 않았습니다." ← 너무 짧고 분석이 없음!
 
-**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
+**CRITICAL FORMATTING RULES:**
+- NEVER use HTML tags. Use single quotes '...' for emphasis.
+- NEVER use ** (asterisks) for bold/emphasis - only use single quotes '...'
+- Use \\n\\n for paragraph breaks.
+- modifiedPassage MUST be in ENGLISH (original passage), NOT Korean!
 
 **Output (JSON only):**
 {
@@ -604,7 +663,10 @@ Create a question with 1 blank in the passage.
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ③번 'peaceful'입니다. 문맥상 적절합니다." ← 뜻도 없고 분석도 없음!
 
-**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
+**CRITICAL FORMATTING RULES:**
+- NEVER use HTML tags. Use single quotes '...' for emphasis.
+- NEVER use ** (asterisks) for bold/emphasis in explanation - only use single quotes '...'
+- Use \\n\\n for paragraph breaks.
 **VOCABULARY: ALWAYS include Korean meanings in parentheses: 'peaceful(평화로운)'**
 
 **Output (JSON only):**
@@ -682,7 +744,10 @@ Summary: [One sentence summary with (A) ______ and (B) ______ blanks]"
 
 **VOCABULARY: ALWAYS include Korean meanings in parentheses: 'sweet(달콤한)'**
 
-**CRITICAL: NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis. Use \\n\\n for paragraph breaks.**
+**CRITICAL FORMATTING RULES:**
+- NEVER use HTML tags (<u>, <b>, etc.) in explanation field. Use single quotes '...' for emphasis.
+- NEVER use ** (asterisks) for bold/emphasis in explanation - only use single quotes '...'
+- Use \\n\\n for paragraph breaks.
 
 **Output (JSON only):**
 {
@@ -808,7 +873,10 @@ Why ③ is irrelevant: It's about dogs (same general topic), but discusses guide
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ③번입니다. 이 글은 개에 대한 글입니다. ③번은 흐름과 맞지 않습니다." ← 구체적 논지도 없고 분석도 없음!
 
-**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
+**CRITICAL FORMATTING RULES:**
+- NEVER use HTML tags. Use single quotes '...' for emphasis.
+- NEVER use ** (asterisks) for bold/emphasis in explanation - only use single quotes '...'
+- Use \\n\\n for paragraph breaks.
 
 **Output (JSON only):**
 {
@@ -861,7 +929,10 @@ Create a question asking where a given sentence fits best.
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ②번 (B)입니다. 이 위치가 가장 자연스럽습니다." ← 이유 없이 너무 짧음!
 
-**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
+**CRITICAL FORMATTING RULES:**
+- NEVER use HTML tags. Use single quotes '...' for emphasis.
+- NEVER use ** (asterisks) for bold/emphasis in explanation - only use single quotes '...'
+- Use \\n\\n for paragraph breaks.
 
 **Output (JSON only):**
 {
@@ -935,7 +1006,10 @@ WRONG FORMAT (DO NOT DO THIS):
 **BAD EXAMPLE (DO NOT DO THIS):**
 "정답은 ③번입니다. 논리적 흐름상 자연스럽습니다." ← 이유 없이 너무 짧음!
 
-**CRITICAL: NEVER use HTML tags. Use single quotes for emphasis. Use \\n\\n for paragraph breaks.**
+**CRITICAL FORMATTING RULES:**
+- NEVER use HTML tags. Use single quotes '...' for emphasis.
+- NEVER use ** (asterisks) for bold/emphasis in explanation - only use single quotes '...'
+- Use \\n\\n for paragraph breaks.
 
 **Output (JSON only):**
 {

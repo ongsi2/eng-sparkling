@@ -2,10 +2,38 @@
  * PDF 내보내기 유틸리티
  * 문제를 PDF 형식으로 내보내기 (한글 지원)
  * 해설 섹션이 페이지 경계에서 잘리지 않도록 처리
+ *
+ * 성능 최적화: 동적 임포트로 초기 번들 크기 ~340KB 절감
  */
 
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+// 동적 임포트를 위한 타입 정의
+type JsPDF = import('jspdf').default;
+type Html2Canvas = typeof import('html2canvas').default;
+
+// 지연 로드된 라이브러리 캐시
+let jsPDFModule: typeof import('jspdf') | null = null;
+let html2canvasModule: Html2Canvas | null = null;
+
+/**
+ * jsPDF 동적 로드
+ */
+async function getJsPDF(): Promise<typeof import('jspdf').default> {
+  if (!jsPDFModule) {
+    jsPDFModule = await import('jspdf');
+  }
+  return jsPDFModule.default;
+}
+
+/**
+ * html2canvas 동적 로드
+ */
+async function getHtml2Canvas(): Promise<Html2Canvas> {
+  if (!html2canvasModule) {
+    const module = await import('html2canvas');
+    html2canvasModule = module.default;
+  }
+  return html2canvasModule;
+}
 
 // Question 타입 정의
 interface Question {
@@ -31,6 +59,8 @@ const USABLE_HEIGHT = PDF_HEIGHT - (MARGIN * 2); // 사용 가능한 높이
  * HTML 요소를 캔버스로 변환
  */
 async function htmlToCanvas(htmlContent: string): Promise<HTMLCanvasElement> {
+  const html2canvas = await getHtml2Canvas();
+
   const container = document.createElement('div');
   container.innerHTML = htmlContent;
   container.style.cssText = `
@@ -74,6 +104,7 @@ async function createSmartPDF(
   sections: { html: string; type: 'header' | 'question' | 'explanation' | 'footer' }[],
   fileName: string
 ): Promise<void> {
+  const jsPDF = await getJsPDF();
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -182,6 +213,7 @@ async function createPDFFromHTML(
   htmlContent: string,
   fileName: string
 ): Promise<void> {
+  const jsPDF = await getJsPDF();
   const canvas = await htmlToCanvas(htmlContent);
   const imgHeight = canvasHeightToMM(canvas);
 

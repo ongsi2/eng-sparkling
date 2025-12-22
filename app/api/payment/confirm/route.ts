@@ -1,6 +1,8 @@
 /**
  * API Route: /api/payment/confirm
  * Confirms payment with Toss Payments and adds coins to user
+ *
+ * Race Condition 방지를 위해 Supabase RPC 함수로 원자적 처리
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -126,60 +128,53 @@ export async function POST(request: NextRequest) {
 
     const paymentData = tossData as TossPaymentResponse;
 
-    // 3. Update order status to completed
-    const { error: updateError } = await supabaseAdmin
-      .from('orders')
-      .update({
-        status: 'completed',
-        payment_key: paymentKey,
-        completed_at: new Date().toISOString(),
-      })
-      .eq('order_id', orderId);
+    // 3. 원자적으로 주문 완료 처리 및 코인 추가 (Race Condition 방지)
+    const { data: rpcResult, error: rpcError } = await supabaseAdmin
+      .rpc('complete_order_with_coins', {
+        p_order_id: orderId,
+        p_payment_key: paymentKey,
+        p_user_id: order.user_id,
+        p_coins: order.coins,
+      });
 
-    if (updateError) {
-      console.error('Error updating order:', updateError);
-      // Payment succeeded but DB update failed - log this for manual resolution
-    }
+    if (rpcError) {
+      console.error('RPC error:', rpcError);
+      // RPC 실패 시 fallback으로 기존 로직 시도
+      const { error: updateError } = await supabaseAdmin
+        .from('orders')
+        .update({
+          status: 'completed',
+          payment_key: paymentKey,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('order_id', orderId);
 
-    // 4. Add coins to user's balance
-    // First get current balance
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('coins')
-      .eq('id', order.user_id)
-      .single();
+      if (updateError) {
+        console.error('Fallback order update error:', updateError);
+      }
 
-    if (profileError) {
-      console.error('Error fetching profile:', profileError);
-      // Payment succeeded but coin addition failed - log for manual resolution
       return NextResponse.json({
         success: true,
-        message: 'Payment completed but coin addition failed. Please contact support.',
+        message: 'Payment completed but coin addition may have failed. Please contact support.',
         orderId,
         coins: order.coins,
       });
     }
 
-    const currentCoins = profile?.coins ?? 0;
-    const newBalance = currentCoins + order.coins;
+    // RPC 결과 확인
+    const result = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
 
-    const { error: coinError } = await supabaseAdmin
-      .from('profiles')
-      .update({
-        coins: newBalance,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', order.user_id);
-
-    if (coinError) {
-      console.error('Error adding coins:', coinError);
+    if (!result?.success) {
+      console.error('RPC returned failure:', result?.error_message);
       return NextResponse.json({
         success: true,
-        message: 'Payment completed but coin addition failed. Please contact support.',
+        message: result?.error_message || 'Payment completed but coin addition failed. Please contact support.',
         orderId,
         coins: order.coins,
       });
     }
+
+    const newBalance = result.new_balance;
 
     // 5. Log purchase activity (non-blocking)
     logPurchase(request, order.user_id, orderId, amount, order.coins).catch(err => {
